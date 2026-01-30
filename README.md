@@ -23,5 +23,7 @@ A system that helps students plan courses across academic terms.
 ## Links to Additional Project Requirements
 
 GitHub Repo: <https://github.com/Alianno-Tulloch/Student-Course-Planner>
+
 GitHub Project Board: <https://github.com/users/Alianno-Tulloch/projects/2/views/1>
+
 Wiki / Activity Blog: <https://github.com/Alianno-Tulloch/Student-Course-Planner/wiki/Week-1:-Jan-26th-to-20th>
