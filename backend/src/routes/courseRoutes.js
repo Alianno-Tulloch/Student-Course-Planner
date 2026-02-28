@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const courseController = require('../controllers/courseController');
 
-// Define specific routes
 router.get('/', courseController.getAllCourses);
 router.get('/search', courseController.searchCourses);
 router.post('/add', courseController.addCourse);
