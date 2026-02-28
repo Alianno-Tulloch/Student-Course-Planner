@@ -1,8 +1,6 @@
 const API_URL = 'http://localhost:5000/api';
 
-/**
- * Sends a search query to the backend and logs the result
- */
+// Sends a search query to the backend
 async function searchCourses() {
     const searchInput = document.querySelector('.search-bar');
     if (!searchInput) return;
@@ -14,7 +12,7 @@ async function searchCourses() {
         const response = await fetch(`${API_URL}/courses/search?q=${encodeURIComponent(searchTerm)}`);
         const data = await response.json();
 
-        // For now, we just alert the placeholder message from the server
+        // Alert the placeholder message from the server
         alert(`Server says: ${data.message}`);
         console.log('Search response:', data);
     } catch (error) {
@@ -23,10 +21,7 @@ async function searchCourses() {
     }
 }
 
-/**
- * Sends a request to the backend to add a course to the schedule
- * @param {string} courseId - The ID of the course to add
- */
+// Sends a request to the backend to add a course to the schedule
 async function addCourse(courseId) {
     console.log(`Attempting to add course: ${courseId}`);
 
@@ -48,7 +43,7 @@ async function addCourse(courseId) {
     }
 }
 
-// Add event listener for the Search bar to trigger on "Enter" key
+// Add event listener for the Search bar to trigger on enter
 document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.querySelector('.search-bar');
     if (searchInput) {
