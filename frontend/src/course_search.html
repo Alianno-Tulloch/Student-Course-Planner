@@ -20,7 +20,7 @@
         </header>
 
         <div class="image-placeholder">IMG</div>
-        <input type="text" class="search-bar" placeholder="Search">
+        <input type="text" class="search-bar" id="search-input" placeholder="Search">
 
         <div class="filters">
             <select>
@@ -40,17 +40,9 @@
             </select>
         </div>
 
-        <div class="results-grid">
-            <div class="course-card">
-                <input type="text" placeholder="CP101" disabled>
-                <button onclick="addCourse('CP101')">Add</button>
-                <p>Time, Instructor, etc</p>
-            </div>
-            <div class="course-card">
-                <input type="text" placeholder="CP102" disabled>
-                <button onclick="addCourse('CP102')">Add</button>
-                <p>Time, Instructor, etc</p>
-            </div>
+        <div class="results-grid" id="results-grid">
+            <!-- Courses will be dynamically injected here using JavaScript -->
+            <p style="grid-column: span 3; text-align: center; color: #a0aec0; width: 100%;">Enter a search term above, or press enter to load all courses.</p>
         </div>
     </div>
     <script src="api.js"></script>

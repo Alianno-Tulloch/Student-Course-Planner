@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Course Planner - Log In</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            text-align: center;
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .login-input {
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .login-btn {
+            background-color: #6c5ce7;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .login-btn:hover {
+            background-color: #5a4bcf;
+        }
+        
+        #error-message {
+            color: #d63031;
+            margin-top: 15px;
+            display: none;
+        }
+        
+        .mock-hint {
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 20px;
+            text-align: left;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container login-container">
+        <div class="logo" style="margin: 0 auto 20px;"></div>
+        <h2 style="color: #6c5ce7;">Welcome Back</h2>
+        <p style="color: #666; margin-top: 5px;">Sign in to your Course Planner</p>
+
+        <form class="login-form" id="login-form">
+            <input type="text" id="username" class="login-input" placeholder="Username" required>
+            <input type="password" id="password" class="login-input" placeholder="Password" required>
+            <button type="submit" class="login-btn">Log In</button>
+        </form>
+        <p id="error-message"></p>
+        
+        <div class="mock-hint">
+            <strong>Hint (Mock Data):</strong> Try username: <code>kyle</code>, password: <code>password</code>
+        </div>
+    </div>
+
+    <script src="api.js"></script>
+</body>
+
+</html>
