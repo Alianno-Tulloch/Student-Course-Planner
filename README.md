@@ -30,11 +30,20 @@ Wiki / Activity Blog: <https://github.com/Alianno-Tulloch/Student-Course-Planner
 
 ## How to Run the Project
 
+### Download Node.js AND npm
+1. Download Node.js and download npm, from this link: <https://nodejs.org/en/download>
+
 ### Start the Backend
 1. Open your terminal or command prompt.
 2. Navigate to the backend folder
-3. Install the required dependencies
-4. Start the server
+3. Install the required dependencies, using this terminal command:
+
+    `npm install`
+
+4. Start the server, using this terminal command:
+
+    `npm start`
+
 5. The console should display: Server is running on port 5000
 
 ### Start the Frontend
