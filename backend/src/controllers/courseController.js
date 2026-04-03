@@ -50,11 +50,11 @@ exports.searchCourses = async (req, res) => {
 // Add a course to a student's schedule
 exports.addCourse = async (req, res) => {
     try {
-        const { enrollment_id, student_id, course_code, term_id, status, grade } = req.body
+        const { student_id, course_code, term_id, status, grade } = req.body
 
-        if (!enrollment_id || !student_id || !course_code || !term_id) {
+        if (!student_id || !course_code || !term_id) {
             return res.status(400).json({
-                error: 'enrollment_id, student_id, course_code, and term_id are required.'
+                error: 'student_id, course_code, and term_id are required.'
             })
         }
 
@@ -68,7 +68,6 @@ exports.addCourse = async (req, res) => {
             .from('course_enrollment')
             .insert([
                 {
-                    enrollment_id,
                     student_id,
                     course_code,
                     term_id,

@@ -1,0 +1,49 @@
+-- 1. Create Major first (so Student can reference it)
+CREATE TABLE Major (
+    major_id SERIAL PRIMARY KEY,
+    major_name VARCHAR(100) NOT NULL,
+    gpa_req DECIMAL(4,2),
+    req_credits DECIMAL(4,2)
+);
+
+-- 2. Create Student
+CREATE TABLE Student (
+    student_id SERIAL PRIMARY KEY,
+    name VARCHAR(50) NOT NULL,
+    major_id INT REFERENCES Major(major_id),
+    gpa DECIMAL(4,2)
+);
+
+-- 3. Create Term
+CREATE TABLE Term (
+    term_id SERIAL PRIMARY KEY,
+    term_name VARCHAR(50) NOT NULL,
+    start_date DATE,
+    end_date DATE
+);
+
+-- 4. Create Course
+CREATE TABLE Course (
+    course_code VARCHAR(10) PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    credits DECIMAL(3,1),
+    description TEXT
+);
+
+-- 5. Junction for Major Requirements
+CREATE TABLE Major_Course_Junction (
+    major_id INT REFERENCES Major(major_id),
+    course_code VARCHAR(10) REFERENCES Course(course_code),
+    core_course BOOLEAN DEFAULT TRUE, -- TRUE = core, FALSE = elective
+    PRIMARY KEY (major_id, course_code)
+);
+
+-- 6. Course Enrollment (The "Schedule")
+CREATE TABLE Course_Enrollment (
+    enrollment_id SERIAL PRIMARY KEY,
+    student_id INT REFERENCES Student(student_id),
+    course_code VARCHAR(10) REFERENCES Course(course_code),
+    term_id INT REFERENCES Term(term_id),
+    status SMALLINT DEFAULT 0, -- 0 = planned, 1 = in progress, 2 = completed
+    grade DECIMAL(4,2)
+);

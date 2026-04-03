@@ -20,7 +20,7 @@ const checkLoginStatus = () => {
     return userData ? JSON.parse(userData) : null;
 };
 
-// Sends a search query to the backend and renders result cards
+// Sends a search query to the backend and renders result cards from Supabase
 async function searchCourses() {
     const searchInput = document.getElementById('search-input');
     const resultsGrid = document.getElementById('results-grid');
@@ -35,21 +35,23 @@ async function searchCourses() {
         // Clear out the previous results
         resultsGrid.innerHTML = '';
 
-        if (courses.length === 0) {
+        if (!courses || courses.length === 0) {
             resultsGrid.innerHTML = '<p style="grid-column: span 3; text-align: center; color: #a0aec0; width: 100%;">No courses found matching your query.</p>';
             return;
         }
 
-        // Generate a card for each course
+        // Generate a card for each course based on your schema
         courses.forEach(course => {
             const card = document.createElement('div');
             card.className = 'course-card';
             card.innerHTML = `
-                <input type="text" placeholder="${course.id}" disabled style="text-align: center; font-weight: bold; font-size: 1.1rem; color: #333; background-color: #f8f9fa;">
-                <p style="margin-bottom: 5px; color: #333; font-weight: 500;">${course.name}</p>
-                <p style="margin-bottom: 10px;">${course.instructor} • ${course.term}</p>
-                <button onclick="addCourse('${course.id}', this)">Add to Schedule</button>
-                <p style="font-size: 0.8rem">${course.time} • ${course.credits} Credits</p>
+                <div style="font-weight: bold; font-size: 1.1rem; color: #6c5ce7; margin-bottom: 5px;">${course.course_code}</div>
+                <p style="margin-bottom: 5px; color: #333; font-weight: 600; line-height: 1.2;">${course.title}</p>
+                <p style="font-size: 0.85rem; color: #666; margin-bottom: 15px; height: 40px; overflow: hidden; text-overflow: ellipsis;">
+                    ${course.description || 'No description available.'}
+                </p>
+                <button onclick="addCourse('${course.course_code}', this)">Add to Schedule</button>
+                <p style="font-size: 0.8rem; margin-top: 10px; color: #a0aec0;">${course.credits || '0.5'} Credits</p>
             `;
             resultsGrid.appendChild(card);
         });
@@ -60,34 +62,39 @@ async function searchCourses() {
     }
 }
 
-// Sends a request to the backend to add a course to the schedule
-async function addCourse(courseId, buttonElement) {
-    const user = checkLoginStatus();
-    const userId = user ? user.username : 'guest';
+// Sends a request to add a course to the Course_Enrollment table
+async function addCourse(courseCode, buttonElement) {
+    const user = JSON.parse(localStorage.getItem('loggedInUser'));
+    
+    // Fallback values for now since we haven't linked Users to Students yet
+    const studentId = user ? user.id : 1; 
+    const termId = 1; // Default to the first term (e.g., Fall 2026)
 
     try {
         const response = await fetch(`${API_URL}/courses/add`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ courseId: courseId, userId: userId })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                student_id: studentId, 
+                course_code: courseCode, 
+                term_id: termId,
+                status: 0 // Default to "Planned"
+            })
         });
 
         const data = await response.json();
         
-        if (data.success) {
-            // Update the button visually
+        if (response.ok) {
             buttonElement.innerText = "Added!";
             buttonElement.style.backgroundColor = "#20c997";
             buttonElement.disabled = true;
         } else {
-            alert(data.message);
+            alert(data.error || "Failed to add course.");
         }
         
     } catch (error) {
         console.error('Error adding course:', error);
-        alert('Could not connect to the backend server.');
+        alert('An error occurred while communicating with the database.');
     }
 }
 
