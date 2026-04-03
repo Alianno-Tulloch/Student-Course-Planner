@@ -1,22 +1,27 @@
-// This acts as a fake database for users
-const MOCK_USERS = [
-    { id: 1, username: 'kyle', password: 'password', name: 'Kyle' },
-    { id: 2, username: 'ali', password: 'password', name: 'Ali' },
-    { id: 3, username: 'tolu', password: 'password', name: 'Tolulope' }
-];
+const { supabase } = require('../supabaseClient');
 
-exports.login = (req, res) => {
+exports.login = async (req, res) => {
     const { username, password } = req.body;
 
-    const user = MOCK_USERS.find(u => u.username === username && u.password === password);
+    try {
+        // Query Supabase for a student with this username and password
+        const { data, error } = await supabase
+            .from('Student') // Ensure table name matches your Supabase schema exactly
+            .select('student_id, name, username')
+            .eq('username', username)
+            .eq('password', password)
+            .single();
 
-    if (user) {
+        if (error || !data) {
+            return res.status(401).json({ success: false, message: 'Invalid username or password' });
+        }
+
         res.json({
             success: true,
             message: 'Login successful',
-            user: { id: user.id, name: user.name, username: user.username }
+            user: { id: data.student_id, name: data.name, username: data.username }
         });
-    } else {
-        res.status(401).json({ success: false, message: 'Invalid username or password' });
+    } catch (err) {
+        res.status(500).json({ success: false, message: 'Server error during login.' });
     }
 };
