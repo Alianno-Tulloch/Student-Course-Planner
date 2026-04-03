@@ -1,50 +1,159 @@
-// Controller for handling course-related logic using Mock Data
+// Controller for handling course-related logic
 
-const MOCK_COURSES = [
-    { id: 'CP104', name: 'Introduction to Programming', department: 'Computer Science', term: 'Fall', instructor: 'Dr. Brown', time: 'MWF 10:00 - 11:20', credits: 0.5 },
-    { id: 'CP164', name: 'Data Structures I', department: 'Computer Science', term: 'Winter', instructor: 'Dr. Smith', time: 'TTh 13:00 - 14:20', credits: 0.5 },
-    { id: 'CP213', name: 'Introduction to Object-Oriented Programming', department: 'Computer Science', term: 'Fall', instructor: 'Dr. Green', time: 'MWF 14:30 - 15:50', credits: 0.5 },
-    { id: 'CP264', name: 'Data Structures II', department: 'Computer Science', term: 'Winter', instructor: 'Dr. White', time: 'TTh 10:00 - 11:20', credits: 0.5 },
-    { id: 'CP312', name: 'Algorithm Design and Analysis I', department: 'Computer Science', term: 'Fall', instructor: 'Dr. Black', time: 'MWF 08:30 - 09:50', credits: 0.5 },
-    { id: 'CP476', name: 'Internet Computing', department: 'Computer Science', term: 'Winter', instructor: 'Dr. Daraghmeh', time: 'TTh 16:00 - 17:20', credits: 0.5 }
-];
+const { supabase } = require('../supabaseClient')
 
-// In-memory mock user schedules
-const MOCK_USER_SCHEDULES = {};
+// Get all courses
+exports.getAllCourses = async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('course')
+            .select('*')
+            .order('course_code', { ascending: true })
 
-exports.getAllCourses = (req, res) => {
-    res.json(MOCK_COURSES);
-};
+        if (error) {
+            return res.status(500).json({ error: error.message })
+        }
 
-exports.searchCourses = (req, res) => {
-    const query = req.query.q ? req.query.q.toLowerCase() : '';
-    const filteredCourses = MOCK_COURSES.filter(course => 
-        course.id.toLowerCase().includes(query) || 
-        course.name.toLowerCase().includes(query)
-    );
-    res.json(filteredCourses);
-};
-
-exports.addCourse = (req, res) => {
-    const { courseId, userId } = req.body;
-    
-    // Default to a guest user if no user is provided
-    const targetUser = userId || 'anonymous';
-    
-    if (!MOCK_USER_SCHEDULES[targetUser]) {
-        MOCK_USER_SCHEDULES[targetUser] = [];
+        res.json(data)
+    } catch (err) {
+        res.status(500).json({ error: 'Server error while fetching courses.' })
     }
-    
-    const course = MOCK_COURSES.find(c => c.id === courseId);
-    if (!course) {
-        return res.status(404).json({ success: false, message: `Course ${courseId} not found` });
-    }
-    
-    // Check if duplicate course
-    if (MOCK_USER_SCHEDULES[targetUser].find(c => c.id === courseId)) {
-        return res.status(400).json({ success: false, message: `Course ${courseId} is already in your schedule` });
-    }
+}
 
-    MOCK_USER_SCHEDULES[targetUser].push(course);
-    res.json({ success: true, message: `Course ${courseId} added to schedule!`, schedule: MOCK_USER_SCHEDULES[targetUser] });
-};
+// Search courses by code or title
+exports.searchCourses = async (req, res) => {
+    try {
+        const query = req.query.q
+
+        if (!query || query.trim() === '') {
+            return res.status(400).json({ error: 'Search query is required.' })
+        }
+
+        const searchTerm = query.trim()
+
+        const { data, error } = await supabase
+            .from('course')
+            .select('*')
+            .or(`course_code.ilike.%${searchTerm}%,title.ilike.%${searchTerm}%`)
+            .order('course_code', { ascending: true })
+
+        if (error) {
+            return res.status(500).json({ error: error.message })
+        }
+
+        res.json(data)
+    } catch (err) {
+        res.status(500).json({ error: 'Server error while searching courses.' })
+    }
+}
+
+// Add a course to a student's schedule
+exports.addCourse = async (req, res) => {
+    try {
+        const { enrollment_id, student_id, course_code, term_id, status, grade } = req.body
+
+        if (!enrollment_id || !student_id || !course_code || !term_id) {
+            return res.status(400).json({
+                error: 'enrollment_id, student_id, course_code, and term_id are required.'
+            })
+        }
+
+        if (status !== undefined && ![0, 1, 2].includes(status)) {
+            return res.status(400).json({
+                error: 'Status must be 0 (planned), 1 (in progress), or 2 (completed).'
+            })
+        }
+
+        const { data, error } = await supabase
+            .from('course_enrollment')
+            .insert([
+                {
+                    enrollment_id,
+                    student_id,
+                    course_code,
+                    term_id,
+                    status: status !== undefined ? status : 0,
+                    grade: grade !== undefined ? grade : null
+                }
+            ])
+            .select()
+
+        if (error) {
+            return res.status(500).json({ error: error.message })
+        }
+
+        res.status(201).json({
+            message: `Course ${course_code} added successfully.`,
+            data
+        })
+    } catch (err) {
+        res.status(500).json({ error: 'Server error while adding course.' })
+    }
+}
+
+// Update a course enrollment
+exports.updateCourse = async (req, res) => {
+    try {
+        const { enrollment_id } = req.params
+        const { status, grade, term_id } = req.body
+
+        if (!enrollment_id) {
+            return res.status(400).json({ error: 'Enrollment ID is required.' })
+        }
+
+        if (status !== undefined && ![0, 1, 2].includes(status)) {
+            return res.status(400).json({
+                error: 'Status must be 0 (planned), 1 (in progress), or 2 (completed).'
+            })
+        }
+
+        const updateFields = {}
+
+        if (status !== undefined) updateFields.status = status
+        if (grade !== undefined) updateFields.grade = grade
+        if (term_id !== undefined) updateFields.term_id = term_id
+
+        const { data, error } = await supabase
+            .from('course_enrollment')
+            .update(updateFields)
+            .eq('enrollment_id', enrollment_id)
+            .select()
+
+        if (error) {
+            return res.status(500).json({ error: error.message })
+        }
+
+        res.json({
+            message: `Enrollment ${enrollment_id} updated successfully.`,
+            data
+        })
+    } catch (err) {
+        res.status(500).json({ error: 'Server error while updating course.' })
+    }
+}
+
+// Delete a course from a student's schedule
+exports.deleteCourse = async (req, res) => {
+    try {
+        const { enrollment_id } = req.params
+
+        if (!enrollment_id) {
+            return res.status(400).json({ error: 'Enrollment ID is required.' })
+        }
+
+        const { error } = await supabase
+            .from('course_enrollment')
+            .delete()
+            .eq('enrollment_id', enrollment_id)
+
+        if (error) {
+            return res.status(500).json({ error: error.message })
+        }
+
+        res.json({
+            message: `Enrollment ${enrollment_id} deleted successfully.`
+        })
+    } catch (err) {
+        res.status(500).json({ error: 'Server error while deleting course.' })
+    }
+}
