@@ -138,7 +138,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (data.success) {
                     localStorage.setItem('loggedInUser', JSON.stringify(data.user));
-                    window.location.href = 'home.html';
+                    
+                    if (data.user.role === 'admin') {
+                        window.location.href = 'admin.html';
+                    } else {
+                        window.location.href = 'home.html';
+                    }
                 } else {
                     errorText.innerText = data.message;
                     errorText.style.display = 'block';
@@ -235,5 +240,51 @@ async function loadScheduleTable() {
 
     } catch (error) {
         console.error('Error loading schedule:', error);
+    }
+}
+
+// Function for Admins to create new global courses
+async function submitNewCourse(event) {
+    event.preventDefault();
+    
+    // Check if the user is truly an admin (basic frontend check)
+    const user = checkLoginStatus();
+    if (!user || user.role !== 'admin') {
+        alert("Unauthorized access. Only admins can create courses.");
+        return;
+    }
+
+    const course_code = document.getElementById('new-course-code').value;
+    const title = document.getElementById('new-course-title').value;
+    const credits = document.getElementById('new-course-credits').value;
+    const description = document.getElementById('new-course-desc').value;
+    const meeting_days = document.getElementById('new-course-days').value;
+    const meeting_times = document.getElementById('new-course-times').value;
+    
+    const messageDisplay = document.getElementById('admin-message');
+
+    try {
+        const response = await fetch(`${API_URL}/courses/create`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                course_code, title, credits, description, meeting_days, meeting_times
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            messageDisplay.innerText = data.message;
+            messageDisplay.style.color = '#20c997'; // Green success
+            document.getElementById('admin-course-form').reset();
+        } else {
+            messageDisplay.innerText = data.error || 'Failed to create course.';
+            messageDisplay.style.color = '#e53e3e'; // Red error
+        }
+    } catch (error) {
+        console.error('Error creating course:', error);
+        messageDisplay.innerText = 'Server error during creation.';
+        messageDisplay.style.color = '#e53e3e';
     }
 }

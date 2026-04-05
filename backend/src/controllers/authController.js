@@ -7,7 +7,7 @@ exports.login = async (req, res) => {
         // Query Supabase for a student with this username and password
         const { data, error } = await supabase
             .from('student') // Standardized to lowercase to match standard Postgres behavior
-            .select('student_id, name, username')
+            .select('student_id, name, username, role')
             .eq('username', username)
             .eq('password', password)
             .single();
@@ -23,7 +23,7 @@ exports.login = async (req, res) => {
         res.json({
             success: true,
             message: 'Login successful',
-            user: { id: data.student_id, name: data.name, username: data.username }
+            user: { id: data.student_id, name: data.name, username: data.username, role: data.role || 'student' }
         });
     } catch (err) {
         res.status(500).json({ success: false, message: 'Server error during login.' });

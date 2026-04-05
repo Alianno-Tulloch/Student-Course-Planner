@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .admin-container {
+            max-width: 600px;
+            margin: 50px auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .admin-form input, .admin-form textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #e2e8f0;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+        .admin-form button {
+            width: 100%;
+            padding: 12px;
+            background-color: #d11242; /* A distinct red to signify Admin power */
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+            transition: background-color 0.2s;
+        }
+        .admin-form button:hover {
+            background-color: #a00b30;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar">
+        <!-- Minimal sidebar for Admin -->
+        <h2 style="color: white; padding-left: 20px;">Admin Portal</h2>
+        <ul style="list-style: none; padding-left: 20px; color: #a0aec0; line-height: 2;">
+            <li>Course Registry</li>
+            <li>Student Logs (TBA)</li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <header>
+            <a href="admin.html" class="logo"></a>
+            <nav>
+                <a class="button" href="login.html" onclick="localStorage.removeItem('loggedInUser')">Log Out</a>
+            </nav>
+        </header>
+
+        <div class="admin-container">
+            <h2 id="welcome-message">Welcome Admin!</h2>
+            <p style="color: #666;">Publish a new course to the global university roster here.</p>
+            <hr style="margin-bottom: 20px; border: 0; border-top: 1px solid #e2e8f0;">
+            
+            <form id="admin-course-form" class="admin-form" onsubmit="submitNewCourse(event)">
+                <label>Course Code</label>
+                <input type="text" id="new-course-code" placeholder="e.g. CP104" required>
+                
+                <label>Course Title</label>
+                <input type="text" id="new-course-title" placeholder="e.g. Introduction to Programming" required>
+                
+                <label>Credits</label>
+                <input type="number" id="new-course-credits" step="0.1" placeholder="e.g. 0.5" required>
+                
+                <label>Meeting Days</label>
+                <input type="text" id="new-course-days" placeholder="e.g. MWF or TTh">
+                
+                <label>Meeting Times</label>
+                <input type="text" id="new-course-times" placeholder="e.g. 10:00 AM - 11:20 AM">
+                
+                <label>Description</label>
+                <textarea id="new-course-desc" rows="4" placeholder="Course description..."></textarea>
+                
+                <p id="admin-message" style="font-weight: bold; margin-bottom: 10px;"></p>
+                
+                <button type="submit">Publish Global Course</button>
+            </form>
+        </div>
+    </div>
+    
+    <script src="api.js"></script>
+</body>
+
+</html>

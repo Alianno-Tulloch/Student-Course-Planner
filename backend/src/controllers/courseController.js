@@ -202,3 +202,44 @@ exports.getStudentSchedule = async (req, res) => {
         res.status(500).json({ error: 'Server error while fetching schedule.' })
     }
 }
+
+// Admin function to create a brand new global course
+exports.createNewGlobalCourse = async (req, res) => {
+    try {
+        const { course_code, title, credits, description, meeting_days, meeting_times } = req.body
+
+        if (!course_code || !title) {
+            return res.status(400).json({ error: 'course_code and title are absolutely required.' })
+        }
+
+        const { data, error } = await supabase
+            .from('course')
+            .insert([
+                {
+                    course_code,
+                    title,
+                    credits: credits || 0.5,
+                    description: description || null,
+                    meeting_days: meeting_days || null,
+                    meeting_times: meeting_times || null
+                }
+            ])
+            .select()
+
+        if (error) {
+            console.error(error);
+            // Catch unique constraint violation for course_code
+            if (error.code === '23505') {
+                return res.status(400).json({ error: 'This course code already exists.' })
+            }
+            return res.status(500).json({ error: error.message })
+        }
+
+        res.status(201).json({
+            message: `Global course ${course_code} successfully published!`,
+            data
+        })
+    } catch (err) {
+        res.status(500).json({ error: 'Server error while creating global course.' })
+    }
+}
