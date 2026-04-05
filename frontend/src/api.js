@@ -537,11 +537,16 @@ async function loadProgress() {
             const coreReq = (data.req_credits * 0.7).toFixed(1);
             const elecReq = (data.req_credits * 0.3).toFixed(1);
 
+            const coreIpBar = document.getElementById('core-ip-fill');
+            const elecIpBar = document.getElementById('elec-ip-fill');
+
             if (progressBar) progressBar.style.width = `${data.core_percentage}%`;
+            if (coreIpBar) coreIpBar.style.width = `${data.core_ip_percentage}%`;
             if (textDisplay) textDisplay.innerHTML = `<strong>${data.core_credits} / ${coreReq}</strong> Credits Completed (${data.core_percentage}%)`;
             
             const electiveText = document.getElementById('elective-text');
             if (electivesBar) electivesBar.style.width = `${data.elective_percentage}%`;
+            if (elecIpBar) elecIpBar.style.width = `${data.elective_ip_percentage}%`;
             if (electiveText) electiveText.innerHTML = `<strong>${data.elective_credits} / ${elecReq}</strong> Credits Completed (${data.elective_percentage}%)`;
             
             if (overviewBox) {

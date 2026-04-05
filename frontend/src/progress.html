@@ -23,23 +23,24 @@
         <h1 class="page-title" id="page-title-text">Degree Progress</h1>
 
         <div class="legend">
-            <div><span>Completed</span></div>
-            <div><span>In Progress</span></div>
-            <div><span>Planned</span></div>
+            <div><span class="legend-completed">Completed</span></div>
+            <div><span class="legend-ip">In Progress</span></div>
         </div>
 
         <div class="progress-section">
             <div class="progress-label">Core courses <span id="progress-text" style="font-weight:normal; font-size: 0.8em; margin-left:10px;"></span></div>
-            <div class="progress-bar">
+            <div class="progress-bar" style="display: flex;">
                 <div class="progress-fill fill-core" id="progress-bar-fill" style="width: 0%; transition: width 0.5s ease-in-out;"></div>
+                <div class="progress-fill fill-ip" id="core-ip-fill" style="width: 0%; transition: width 0.5s ease-in-out; background-color: #6c5ce7; opacity: 0.7;"></div>
             </div>
             <p style="font-size: 0.75rem; color: #a0aec0; margin-top: 5px;">* Progress is divided by a standard graduation requirement of 30.0 credits for this prototype.</p>
         </div>
 
         <div class="progress-section">
             <div class="progress-label">Electives <span id="elective-text" style="font-weight:normal; font-size: 0.8em; margin-left:10px;"></span></div>
-            <div class="progress-bar">
+            <div class="progress-bar" style="display: flex;">
                 <div class="progress-fill fill-electives" style="width: 0%; transition: width 0.5s ease-in-out;"></div>
+                <div class="progress-fill fill-ip" id="elec-ip-fill" style="width: 0%; transition: width 0.5s ease-in-out; background-color: #6c5ce7; opacity: 0.7;"></div>
             </div>
         </div>
 

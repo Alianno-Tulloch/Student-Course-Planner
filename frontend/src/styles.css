@@ -272,8 +272,16 @@ select {
 }
 
 .legend span::before {
-    content: '○';
-    margin-right: 5px;
+    content: '●';
+    margin-right: 8px;
+}
+
+.legend-completed::before {
+    color: #20c997;
+}
+
+.legend-ip::before {
+    color: #6c5ce7;
 }
 
 .progress-section {

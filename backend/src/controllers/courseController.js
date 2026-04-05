@@ -450,6 +450,8 @@ exports.getStudentProgress = async (req, res) => {
         // 3. Separate Core vs Elective Credits
         let coreCredits = 0;
         let electiveCredits = 0;
+        let coreIpCredits = 0;
+        let electiveIpCredits = 0;
 
         if (studentData && studentData.major_id) {
             const { data: junctionData } = await supabase
@@ -460,13 +462,18 @@ exports.getStudentProgress = async (req, res) => {
             const coreCourseMap = new Set(junctionData?.filter(j => j.core_course).map(j => j.course_code) || []);
 
             data?.forEach(enroll => {
-                if (enroll.status === 2 && enroll.course_offering && enroll.course_offering.course) {
+                if (enroll.course_offering && enroll.course_offering.course) {
                     const c = enroll.course_offering.course;
                     const creds = parseFloat(c.credits) || 0;
-                    if (coreCourseMap.has(c.course_code)) {
-                        coreCredits += creds;
-                    } else {
-                        electiveCredits += creds;
+                    
+                    if (enroll.status === 2) {
+                        // COMPLETED
+                        if (coreCourseMap.has(c.course_code)) coreCredits += creds;
+                        else electiveCredits += creds;
+                    } else if (enroll.status === 1) {
+                        // IN PROGRESS
+                        if (coreCourseMap.has(c.course_code)) coreIpCredits += creds;
+                        else electiveIpCredits += creds;
                     }
                 }
             });
@@ -483,6 +490,9 @@ exports.getStudentProgress = async (req, res) => {
         const coreProgress = Math.min((coreCredits / core_req) * 100, 100); 
         const electiveProgress = Math.min((electiveCredits / elective_req) * 100, 100); 
 
+        const coreIpProgress = Math.min((coreIpCredits / core_req) * 100, 100);
+        const electiveIpProgress = Math.min((electiveIpCredits / elective_req) * 100, 100);
+
         const responsePayload = {
             gpa: studentData?.gpa || 4.0,
             major: studentData?.major?.major_name || 'Undeclared',
@@ -490,10 +500,14 @@ exports.getStudentProgress = async (req, res) => {
             total_credits: totalCredits,
             core_credits: coreCredits,
             elective_credits: electiveCredits,
+            core_ip_credits: coreIpCredits,
+            elective_ip_credits: electiveIpCredits,
             req_credits: req_credits,
             percentage: totalProgress.toFixed(1),
             core_percentage: coreProgress.toFixed(1),
             elective_percentage: electiveProgress.toFixed(1),
+            core_ip_percentage: coreIpProgress.toFixed(1),
+            elective_ip_percentage: electiveIpProgress.toFixed(1),
             history: history
         };
         res.json(responsePayload);

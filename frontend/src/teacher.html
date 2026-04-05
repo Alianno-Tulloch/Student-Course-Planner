@@ -115,7 +115,7 @@
             const teacherId = (user.role === 'teacher') ? user.id : 'null';
 
             try {
-                const response = await fetch(`http://localhost:5000/api/courses/students?teacher_id=${teacherId}`);
+                const response = await fetch(`${API_URL}/courses/students?teacher_id=${teacherId}`);
                 const enrollments = await response.json();
 
                 tbody.innerHTML = '';
@@ -151,7 +151,7 @@
             const status = document.getElementById(`status-${id}`).value;
 
             try {
-                const response = await fetch(`http://localhost:5000/api/courses/grade/${id}`, {
+                const response = await fetch(`${API_URL}/courses/grade/${id}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
