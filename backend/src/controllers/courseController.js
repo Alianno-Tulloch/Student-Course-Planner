@@ -165,15 +165,52 @@ exports.updateCourse = async (req, res) => {
             message: `Enrollment ${enrollment_id} updated successfully.`,
             data
         })
+
+        // GPA Recalculation Trigger (Triggers only on completion statuses)
+        if (status === 2 && data && data.length > 0) {
+            const student_id = data[0].student_id;
+            recalculateGPA(student_id);
+        }
     } catch (err) {
+        console.error(err);
         res.status(500).json({ error: 'Server error while updating course.' })
+    }
+}
+
+// Logic to mathematically average alphabetical/numerical grades based on enrollment history
+const recalculateGPA = async (student_id) => {
+    try {
+        const { data, error } = await supabase
+            .from('course_enrollment')
+            .select('grade')
+            .eq('student_id', student_id)
+            .eq('status', 2)
+            .not('grade', 'is', null);
+
+        if (error || !data || data.length === 0) return;
+
+        const total = data.reduce((sum, item) => sum + parseFloat(item.grade), 0);
+        const averageGrade = (total / data.length);
+        
+        // Convert Percentage to GPA (Assuming 100-point scale maps to 4.0 scale)
+        const gpaScale = ((averageGrade / 100) * 4).toFixed(2);
+
+        await supabase
+            .from('student')
+            .update({ gpa: gpaScale })
+            .eq('student_id', student_id);
+
+    } catch (err) {
+        console.error("GPA Recalc fail:", err);
     }
 }
 
 // Fetch all students and their history (For Teachers and Admins)
 exports.getAllStudentsWithEnrollments = async (req, res) => {
     try {
-        const { data, error } = await supabase
+        const { teacher_id } = req.query;
+
+        let query = supabase
             .from('course_enrollment')
             .select(`
                 enrollment_id,
@@ -184,7 +221,8 @@ exports.getAllStudentsWithEnrollments = async (req, res) => {
                     name,
                     username
                 ),
-                course_offering (
+                course_offering!inner (
+                    teacher_id,
                     course (
                         course_code,
                         title
@@ -194,6 +232,12 @@ exports.getAllStudentsWithEnrollments = async (req, res) => {
                     )
                 )
             `);
+        
+        if (teacher_id && teacher_id !== 'null') {
+            query = query.eq('course_offering.teacher_id', teacher_id);
+        }
+
+        const { data, error } = await query;
 
         if (error) return res.status(500).json({ error: error.message });
         res.json(data);

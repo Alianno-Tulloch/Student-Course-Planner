@@ -95,8 +95,13 @@
 
         async function loadGradebook() {
             const tbody = document.getElementById('gradebook-body');
+            const user = JSON.parse(localStorage.getItem('loggedInUser'));
+            
+            // If they are a teacher, we only fetch THEIR students. Admins see everyone.
+            const teacherId = (user.role === 'teacher') ? user.id : 'null';
+
             try {
-                const response = await fetch('http://localhost:5000/api/courses/students');
+                const response = await fetch(`http://localhost:5000/api/courses/students?teacher_id=${teacherId}`);
                 const enrollments = await response.json();
 
                 tbody.innerHTML = '';
