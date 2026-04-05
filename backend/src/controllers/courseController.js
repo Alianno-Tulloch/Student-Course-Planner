@@ -170,6 +170,38 @@ exports.updateCourse = async (req, res) => {
     }
 }
 
+// Fetch all students and their history (For Teachers and Admins)
+exports.getAllStudentsWithEnrollments = async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('course_enrollment')
+            .select(`
+                enrollment_id,
+                grade,
+                status,
+                student (
+                    student_id,
+                    name,
+                    username
+                ),
+                course_offering (
+                    course (
+                        course_code,
+                        title
+                    ),
+                    term (
+                        term_name
+                    )
+                )
+            `);
+
+        if (error) return res.status(500).json({ error: error.message });
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ error: 'Server error fetching student roster.' });
+    }
+}
+
 // Delete a course from a student's schedule
 exports.deleteCourse = async (req, res) => {
     try {

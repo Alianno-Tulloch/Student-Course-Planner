@@ -9,6 +9,8 @@ router.post('/add', courseController.addCourse);
 router.post('/create', courseController.createNewGlobalCourse);
 router.get('/schedule/:student_id', courseController.getStudentSchedule);
 router.get('/progress/:student_id', courseController.getStudentProgress);
+router.get('/students', courseController.getAllStudentsWithEnrollments);
+router.patch('/grade/:enrollment_id', courseController.updateCourse);
 router.delete('/delete/:enrollment_id', courseController.deleteCourse);
 
 module.exports = router;

@@ -44,19 +44,11 @@
 </head>
 
 <body>
-    <div class="sidebar">
-        <!-- Minimal sidebar for Admin -->
-        <h2 style="color: white; padding-left: 20px;">Admin Portal</h2>
-        <ul style="list-style: none; padding-left: 20px; color: #a0aec0; line-height: 2;">
-            <li>Course Registry</li>
-            <li>Student Logs (TBA)</li>
-        </ul>
-    </div>
-
-    <div class="main-content">
-        <header>
-            <a href="admin.html" class="logo"></a>
+    <div class="container admin-container">
+        <header style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+            <a href="home.html" class="logo"></a>
             <nav>
+                <a href="teacher.html" class="button" style="background-color: #6c5ce7;">View Gradebook</a>
                 <a class="button" href="login.html" onclick="localStorage.removeItem('loggedInUser')">Log Out</a>
             </nav>
         </header>

@@ -30,17 +30,33 @@ exports.login = async (req, res) => {
     }
 };
 
+exports.getMajors = async (req, res) => {
+    try {
+        const { data, error } = await supabase.from('major').select('*');
+        if (error) return res.status(500).json({ status: 'error', message: error.message });
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: 'Server error' });
+    }
+};
+
 exports.signup = async (req, res) => {
-    const { username, password, name } = req.body;
+    const { username, password, name, role, major_id, minor_id } = req.body;
 
     try {
-        if (!username || !password || !name) {
-            return res.status(400).json({ success: false, message: 'All fields are required.' });
+        if (!username || !password || !name || !role) {
+            return res.status(400).json({ success: false, message: 'Core fields (name, username, password, role) are required.' });
+        }
+
+        const insertData = { username, password, name, role };
+        if (role === 'student') {
+            if (major_id) insertData.major_id = major_id;
+            if (minor_id) insertData.minor_id = minor_id;
         }
 
         const { data, error } = await supabase
             .from('student')
-            .insert([{ username, password, name, role: 'student' }])
+            .insert([insertData])
             .select('student_id, name, username, role')
             .single();
 
@@ -59,5 +75,15 @@ exports.signup = async (req, res) => {
         });
     } catch (err) {
         res.status(500).json({ success: false, message: 'Server error during signup.' });
+    }
+};
+
+exports.getMinors = async (req, res) => {
+    try {
+        const { data, error } = await supabase.from('minor').select('*');
+        if (error) return res.status(500).json({ status: 'error', message: error.message });
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: 'Server error' });
     }
 };

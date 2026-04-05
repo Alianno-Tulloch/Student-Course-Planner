@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Portal - Gradebook</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .gradebook-container {
+            margin-top: 30px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #edf2f7;
+        }
+        th {
+            background-color: #6c5ce7;
+            color: white;
+            font-weight: 600;
+        }
+        .grade-input {
+            width: 60px;
+            padding: 5px;
+            border: 1px solid #cbd5e0;
+            border-radius: 4px;
+        }
+        .save-btn {
+            background-color: #20c997;
+            color: white;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .save-btn:hover {
+            background-color: #17a589;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <a href="home.html" class="logo"></a>
+            <nav id="teacher-nav">
+                <a href="home.html" class="button">Home</a>
+                <a href="teacher.html" class="button active">Gradebook</a>
+                <button onclick="localStorage.removeItem('loggedInUser'); window.location.href='login.html'">Logout</button>
+            </nav>
+        </header>
+
+        <h2 style="color: #6c5ce7; margin-bottom: 5px;">Teacher Gradebook</h2>
+        <p style="color: #718096; margin-bottom: 30px;">Manage student academic records and course completions.</p>
+
+        <div class="gradebook-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Student Name</th>
+                        <th>Course</th>
+                        <th>Term</th>
+                        <th>Grade (%)</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="gradebook-body">
+                    <!-- Dynamic load -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="api.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const user = JSON.parse(localStorage.getItem('loggedInUser'));
+            if (!user || (user.role !== 'teacher' && user.role !== 'admin')) {
+                alert("Access Denied.");
+                window.location.href = 'home.html';
+                return;
+            }
+            loadGradebook();
+        });
+
+        async function loadGradebook() {
+            const tbody = document.getElementById('gradebook-body');
+            try {
+                const response = await fetch('http://localhost:5000/api/courses/students');
+                const enrollments = await response.json();
+
+                tbody.innerHTML = '';
+                enrollments.forEach(item => {
+                    const row = document.createElement('tr');
+                    const student = item.student || {};
+                    const course = (item.course_offering && item.course_offering.course) ? item.course_offering.course : {};
+                    const term = (item.course_offering && item.course_offering.term) ? item.course_offering.term : {};
+
+                    row.innerHTML = `
+                        <td><strong>${student.name || 'Unknown'}</strong></td>
+                        <td>${course.course_code || '---'}</td>
+                        <td>${term.term_name || '---'}</td>
+                        <td><input type="number" step="0.1" class="grade-input" id="grade-${item.enrollment_id}" value="${item.grade || ''}"></td>
+                        <td>
+                            <select id="status-${item.enrollment_id}" style="padding: 5px; border-radius: 4px;">
+                                <option value="0" ${item.status === 0 ? 'selected' : ''}>Planned</option>
+                                <option value="1" ${item.status === 1 ? 'selected' : ''}>In Progress</option>
+                                <option value="2" ${item.status === 2 ? 'selected' : ''}>Completed</option>
+                            </select>
+                        </td>
+                        <td><button class="save-btn" onclick="updateRecord(${item.enrollment_id})">Save</button></td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function updateRecord(id) {
+            const grade = document.getElementById(`grade-${id}`).value;
+            const status = document.getElementById(`status-${id}`).value;
+
+            try {
+                const response = await fetch(`http://localhost:5000/api/courses/grade/${id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        grade: grade ? parseFloat(grade) : null,
+                        status: parseInt(status)
+                    })
+                });
+
+                if (response.ok) {
+                    alert("Grade updated successfully!");
+                } else {
+                    alert("Failed to update record.");
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+    </script>
+</body>
+
+</html>

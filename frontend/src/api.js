@@ -168,6 +168,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     if (data.user.role === 'admin') {
                         window.location.href = 'admin.html';
+                    } else if (data.user.role === 'teacher') {
+                        // Placeholder for teacher dashboard, shared home for now
+                        window.location.href = 'home.html';
                     } else {
                         window.location.href = 'home.html';
                     }
@@ -183,9 +186,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Signup Form Event Listener
+    // Signup Page dynamic population
     const signupForm = document.getElementById('signup-form');
     if (signupForm) {
+        loadSignupOptions(); 
         signupForm.addEventListener('submit', submitSignup);
     }
 
@@ -416,6 +420,44 @@ async function dropCourse(enrollmentId, buttonElement) {
     }
 }
 
+// Toggle Major/Minor inputs on signup
+function toggleStudentFields() {
+    const role = document.getElementById('signup-role').value;
+    const extras = document.getElementById('student-extras');
+    if (extras) {
+        extras.style.display = (role === 'student') ? 'block' : 'none';
+    }
+}
+
+// Populate Majors/Minors for signup
+async function loadSignupOptions() {
+    const majorSelect = document.getElementById('signup-major');
+    const minorSelect = document.getElementById('signup-minor');
+    if (!majorSelect || !minorSelect) return;
+
+    try {
+        const majorsResponse = await fetch(`${API_URL}/auth/majors`);
+        const majors = await majorsResponse.json();
+        majors.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m.major_id;
+            opt.innerText = m.major_name;
+            majorSelect.appendChild(opt);
+        });
+
+        const minorsResponse = await fetch(`${API_URL}/auth/minors`);
+        const minors = await minorsResponse.json();
+        minors.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m.minor_id;
+            opt.innerText = m.minor_name;
+            minorSelect.appendChild(opt);
+        });
+    } catch (err) {
+        console.error("Error loading signup options:", err);
+    }
+}
+
 // Function to process user signups
 async function submitSignup(event) {
     event.preventDefault();
@@ -423,13 +465,23 @@ async function submitSignup(event) {
     const name = document.getElementById('signup-name').value;
     const username = document.getElementById('signup-username').value;
     const password = document.getElementById('signup-password').value;
+    const role = document.getElementById('signup-role').value;
+    const major_id = document.getElementById('signup-major').value;
+    const minor_id = document.getElementById('signup-minor').value;
+    
     const errorText = document.getElementById('signup-error');
 
     try {
+        const body = { name, username, password, role };
+        if (role === 'student') {
+            if (major_id) body.major_id = parseInt(major_id);
+            if (minor_id) body.minor_id = parseInt(minor_id);
+        }
+
         const response = await fetch(`${API_URL}/auth/signup`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, username, password })
+            body: JSON.stringify(body)
         });
 
         const data = await response.json();
