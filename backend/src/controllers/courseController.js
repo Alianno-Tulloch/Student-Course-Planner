@@ -20,24 +20,47 @@ exports.getAllCourses = async (req, res) => {
     }
 }
 
+// Fetch dynamically generated departments from active courses
+exports.getDepartments = async (req, res) => {
+    try {
+        const { data, error } = await supabase.from('course').select('course_code');
+        if (error) return res.status(500).json({ error: error.message });
+        
+        const depts = new Set();
+        data.forEach(course => {
+            const match = course.course_code.match(/^[A-Za-z]+/);
+            if (match) depts.add(match[0].toUpperCase());
+        });
+        
+        res.json(Array.from(depts).sort());
+    } catch (err) {
+        res.status(500).json({ error: 'Server error' });
+    }
+}
+
 // Search courses strictly by active Term Offerings and Academic Level
 exports.searchCourses = async (req, res) => {
     try {
         const query = req.query.q
         const term_id = req.query.term_id
         const level = req.query.level
+        const department = req.query.department
 
         let supabaseQuery = supabase
             .from('course')
             .select('*, course_offering!inner(term_id, offering_id)')
             .order('course_code', { ascending: true })
 
-        if (term_id) {
+        if (term_id && term_id !== 'all') {
             supabaseQuery = supabaseQuery.eq('course_offering.term_id', term_id)
         }
         
         if (level && level !== 'all') {
             supabaseQuery = supabaseQuery.eq('level', level)
+        }
+        
+        if (department && department !== 'all') {
+            supabaseQuery = supabaseQuery.ilike('course_code', `${department}%`)
         }
 
         if (query && query.trim() !== '') {
@@ -182,14 +205,17 @@ exports.getStudentSchedule = async (req, res) => {
             return res.status(400).json({ error: 'Student ID is required.' })
         }
 
-        // Deep Join: Enrollment -> Course Offering -> Course Database
+        // Deep Join: Enrollment -> Course Offering -> Term & Course Database
         const { data, error } = await supabase
             .from('course_enrollment')
             .select(`
                 enrollment_id,
                 status,
                 course_offering (
-                    term_id,
+                    term (
+                        term_id,
+                        term_name
+                    ),
                     course (
                         course_code,
                         title,
@@ -207,15 +233,24 @@ exports.getStudentSchedule = async (req, res) => {
         }
 
         // Flattens the deep join so the frontend receives a clean array
-        const formattedSchedule = data.map(item => ({
-            enrollment_id: item.enrollment_id,
-            status: item.status,
-            term_id: item.course_offering.term_id,
-            course_code: item.course_offering.course.course_code,
-            title: item.course_offering.course.title,
-            meeting_days: item.course_offering.course.meeting_days,
-            meeting_times: item.course_offering.course.meeting_times
-        }));
+        const formattedSchedule = data.map(item => {
+            // Guard against broken joins or incomplete data during prototyping
+            const offering = item.course_offering || {};
+            const term = offering.term || {};
+            const course = offering.course || {};
+
+            return {
+                enrollment_id: item.enrollment_id,
+                status: item.status,
+                term_id: term.term_id,
+                term_name: term.term_name || 'Unknown Term',
+                course_code: course.course_code,
+                title: course.title,
+                meeting_days: course.meeting_days,
+                meeting_times: course.meeting_times,
+                credits: parseFloat(course.credits || 0)
+            };
+        });
 
         res.json(formattedSchedule)
     } catch (err) {
@@ -277,18 +312,28 @@ exports.createNewGlobalCourse = async (req, res) => {
     }
 }
 
-// Fetch a student's degree progress
+// Fetch a student's degree progress natively with Deep Joins
 exports.getStudentProgress = async (req, res) => {
     try {
         const { student_id } = req.params;
         if (!student_id) return res.status(400).json({ error: 'Student ID required.' });
         
-        // Sum total credits across enrolled courses deep join.
+        // Retrieve explicit Student traits (GPA)
+        const { data: studentData, error: studentError } = await supabase
+            .from('student')
+            .select('gpa')
+            .eq('student_id', student_id)
+            .single();
+
+        // Sum total credits and history across enrolled courses deep join.
         const { data, error } = await supabase
             .from('course_enrollment')
             .select(`
+                status,
                 course_offering (
+                    term ( term_name ),
                     course (
+                        course_code,
                         credits
                     )
                 )
@@ -301,20 +346,34 @@ exports.getStudentProgress = async (req, res) => {
         }
 
         let totalCredits = 0;
-        data.forEach(enroll => {
-            if (enroll.course_offering && enroll.course_offering.course && enroll.course_offering.course.credits) {
-                totalCredits += parseFloat(enroll.course_offering.course.credits);
-            }
-        });
+        let history = [];
+        if (data) {
+            data.forEach(enroll => {
+                if (enroll.course_offering && enroll.course_offering.course) {
+                    if (enroll.course_offering.course.credits) {
+                        totalCredits += parseFloat(enroll.course_offering.course.credits);
+                    }
+                    history.push({
+                        course_code: enroll.course_offering.course.course_code,
+                        status: enroll.status,
+                        term_name: enroll.course_offering.term ? enroll.course_offering.term.term_name : ''
+                    });
+                }
+            });
+        }
 
         // Arbitrary standard graduation requirement: 30 credits
         const req_credits = 30.0;
         const progressPercentage = Math.min((totalCredits / req_credits) * 100, 100);
+        const electivePercentage = Math.min((progressPercentage / 2), 100);
 
         res.json({
+            gpa: studentData?.gpa || 4.0,
             total_credits: totalCredits,
             req_credits: req_credits,
-            percentage: progressPercentage.toFixed(1)
+            percentage: progressPercentage.toFixed(1),
+            elective_percentage: electivePercentage.toFixed(1),
+            history: history
         });
     } catch (err) {
         res.status(500).json({ error: 'Server error fetching progress.' });

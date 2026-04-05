@@ -25,15 +25,17 @@ async function searchCourses() {
     const searchInput = document.getElementById('search-input');
     const termSelect = document.getElementById('term-select');
     const levelSelect = document.getElementById('level-select');
+    const departmentSelect = document.getElementById('department-select');
     const resultsGrid = document.getElementById('results-grid');
     if (!searchInput || !resultsGrid || !termSelect) return;
 
     const searchTerm = searchInput.value;
     const termId = termSelect.value;
     const levelId = levelSelect ? levelSelect.value : 'all';
+    const departmentId = departmentSelect ? departmentSelect.value : 'all';
 
     try {
-        const response = await fetch(`${API_URL}/courses/search?q=${encodeURIComponent(searchTerm)}&term_id=${termId}&level=${levelId}`);
+        const response = await fetch(`${API_URL}/courses/search?q=${encodeURIComponent(searchTerm)}&term_id=${termId}&level=${levelId}&department=${departmentId}`);
         const courses = await response.json();
 
         // Clear out the previous results
@@ -133,6 +135,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (levelSelect) {
             levelSelect.addEventListener('change', searchCourses);
         }
+        
+        // Populate Departments and bind filter
+        loadDepartments();
+        const departmentSelect = document.getElementById('department-select');
+        if (departmentSelect) {
+            departmentSelect.addEventListener('change', searchCourses);
+        }
     }
 
     // 2. Setup Login Form Event Listener
@@ -231,6 +240,28 @@ async function loadUpcomingCourses() {
     }
 }
 
+// Load department dropdown dynamically
+async function loadDepartments() {
+    const departmentSelect = document.getElementById('department-select');
+    if (!departmentSelect) return;
+
+    try {
+        const response = await fetch(`${API_URL}/courses/departments`);
+        const data = await response.json();
+        
+        data.forEach(dept => {
+            const option = document.createElement('option');
+            option.value = dept;
+            option.innerText = dept;
+            departmentSelect.appendChild(option);
+        });
+    } catch (err) {
+        console.error('Error loading departments:', err);
+    }
+}
+
+let globalScheduleCourses = []; // Cache to enable dynamic re-rendering
+
 // Fetch and render the full schedule on the Schedule page
 async function loadScheduleTable() {
     const tableBody = document.getElementById('schedule-table-body');
@@ -241,34 +272,80 @@ async function loadScheduleTable() {
 
     try {
         const response = await fetch(`${API_URL}/courses/schedule/${user.id}`);
-        const courses = await response.json();
+        globalScheduleCourses = await response.json();
 
-        if (!courses || courses.length === 0) {
-            document.getElementById('schedule-Mon').innerHTML = '<p style="color: #a0aec0; font-size:0.8rem;">Empty...</p>';
-            return;
+        // Dynamically build terms selector based on enrollments
+        const termSelect = document.getElementById('schedule-term-select');
+        if (termSelect && globalScheduleCourses.length > 0) {
+            const uniqueTerms = new Map(); // deduplicate term_id -> term_name
+            globalScheduleCourses.forEach(course => uniqueTerms.set(course.term_id, course.term_name));
+            
+            termSelect.innerHTML = '';
+            uniqueTerms.forEach((name, id) => {
+                const opt = document.createElement('option');
+                opt.value = id;
+                opt.innerText = name;
+                termSelect.appendChild(opt);
+            });
+            
+            // Re-render when changed
+            termSelect.addEventListener('change', renderScheduleGrid);
         }
 
-        courses.forEach(course => {
-            const daysString = course.meeting_days || '';
-            const cardHTML = `
-                <div style="background-color: #6c5ce7; color: white; padding: 10px; margin-bottom: 10px; border-radius: 6px; font-size: 0.9rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); position: relative;">
-                    <strong>${course.course_code}</strong><br>
-                    <span style="font-size: 0.8rem;">${course.meeting_times || 'TBA'}</span>
-                    <button onclick="dropCourse(${course.enrollment_id}, this)" style="position: absolute; top: 5px; right: 5px; background: none; border: none; color: white; font-weight: bold; cursor: pointer; font-size: 0.9rem;" title="Drop Course">&#10005;</button>
-                </div>
-            `;
-
-            const days = daysString.replace(/Th/g, 'R');
-            if (days.includes('M')) document.getElementById('schedule-Mon').innerHTML += cardHTML;
-            if (days.includes('T')) document.getElementById('schedule-Tues').innerHTML += cardHTML;
-            if (days.includes('W')) document.getElementById('schedule-Wed').innerHTML += cardHTML;
-            if (days.includes('R')) document.getElementById('schedule-Thurs').innerHTML += cardHTML;
-            if (days.includes('F')) document.getElementById('schedule-Fri').innerHTML += cardHTML;
-        });
+        renderScheduleGrid();
 
     } catch (error) {
         console.error('Error loading schedule:', error);
     }
+}
+
+// Subordinate rendering component mapping data onto the Schedule Grid natively
+function renderScheduleGrid() {
+    const tableBody = document.getElementById('schedule-table-body');
+    const termSelect = document.getElementById('schedule-term-select');
+    const creditsSpan = document.getElementById('schedule-credits');
+    if (!tableBody) return;
+
+    // Clear existing schedule grid
+    const daysArr = ['Mon', 'Tues', 'Wed', 'Thurs', 'Fri'];
+    daysArr.forEach(d => {
+        const el = document.getElementById(`schedule-${d}`);
+        if(el) el.innerHTML = '';
+    });
+    
+    if (globalScheduleCourses.length === 0) {
+        document.getElementById('schedule-Mon').innerHTML = '<p style="color: #a0aec0; font-size:0.8rem;">Empty...</p>';
+        if (creditsSpan) creditsSpan.innerText = '0';
+        return;
+    }
+
+    const activeTermId = termSelect ? parseInt(termSelect.value) : globalScheduleCourses[0].term_id;
+
+    // Filter courses matching active term
+    const activeCourses = globalScheduleCourses.filter(c => c.term_id === activeTermId);
+
+    let totalCredits = 0;
+
+    activeCourses.forEach(course => {
+        totalCredits += course.credits;
+        const daysString = course.meeting_days || '';
+        const cardHTML = `
+            <div style="background-color: #6c5ce7; color: white; padding: 10px; margin-bottom: 10px; border-radius: 6px; font-size: 0.9rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); position: relative;">
+                <strong>${course.course_code}</strong><br>
+                <span style="font-size: 0.8rem;">${course.meeting_times || 'TBA'}</span>
+                <button onclick="dropCourse(${course.enrollment_id}, this)" style="position: absolute; top: 5px; right: 5px; background: none; border: none; color: white; font-weight: bold; cursor: pointer; font-size: 0.9rem;" title="Drop Course">&#10005;</button>
+            </div>
+        `;
+
+        const days = daysString.replace(/Th/g, 'R');
+        if (days.includes('M')) document.getElementById('schedule-Mon').innerHTML += cardHTML;
+        if (days.includes('T')) document.getElementById('schedule-Tues').innerHTML += cardHTML;
+        if (days.includes('W')) document.getElementById('schedule-Wed').innerHTML += cardHTML;
+        if (days.includes('R')) document.getElementById('schedule-Thurs').innerHTML += cardHTML;
+        if (days.includes('F')) document.getElementById('schedule-Fri').innerHTML += cardHTML;
+    });
+    
+    if (creditsSpan) creditsSpan.innerText = `${totalCredits}`;
 }
 
 // Function for Admins to create new global courses
@@ -374,9 +451,11 @@ async function submitSignup(event) {
 async function loadProgress() {
     const progressBar = document.getElementById('progress-bar-fill');
     const textDisplay = document.getElementById('progress-text');
+    const electivesBar = document.querySelector('.fill-electives');
+    const overviewBox = document.getElementById('progress-overview');
+    const historyBox = document.getElementById('progress-history');
     
-    if (!progressBar || !textDisplay) return;
-
+    // Attempt load universally to populate parallel blocks (Home page)
     const user = checkLoginStatus();
     if (!user) return;
 
@@ -385,8 +464,33 @@ async function loadProgress() {
         const data = await response.json();
 
         if (response.ok) {
-            progressBar.style.width = `${data.percentage}%`;
-            textDisplay.innerHTML = `<strong>${data.total_credits} / ${data.req_credits}</strong> Credits Completed (${data.percentage}%)`;
+            if (progressBar) progressBar.style.width = `${data.percentage}%`;
+            if (textDisplay) textDisplay.innerHTML = `<strong>${data.total_credits} / ${data.req_credits}</strong> Credits Completed (${data.percentage}%)`;
+            if (electivesBar) electivesBar.style.width = `${data.elective_percentage}%`;
+            
+            if (overviewBox) {
+                overviewBox.innerHTML = `
+                    <p style="font-weight:bold; font-size: 1.25rem; margin-bottom: 10px; color: #2d3748;">GPA: ${parseFloat(data.gpa).toFixed(2)}</p>
+                    <p style="color: #4a5568; font-weight: 500;">Minor: <span style="font-weight: 400; font-style: italic;">Undeclared</span></p>
+                `;
+            }
+            
+            if (historyBox) {
+                if (!data.history || data.history.length === 0) {
+                    historyBox.innerHTML = '<div style="color: #a0aec0; width: 100%; border: none; background: none;">No courses on record.</div>';
+                } else {
+                    historyBox.innerHTML = '';
+                    data.history.forEach(item => {
+                        const historyCard = document.createElement('div');
+                        // Status styling: 0=Planned, 2=Completed
+                        if (item.status === 0) historyCard.className = 'planned';
+                        else historyCard.style.cssText = item.status === 1 ? 'border-left: 4px solid #6c5ce7;' : '';
+                        
+                        historyCard.innerHTML = `<strong>${item.course_code}</strong> <br> <span style="font-size:0.75em; color: #718096;">${item.term_name || 'N/A'}</span>`;
+                        historyBox.appendChild(historyCard);
+                    });
+                }
+            }
         }
     } catch (error) {
         console.error('Error loading progress:', error);
