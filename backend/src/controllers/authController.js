@@ -29,3 +29,35 @@ exports.login = async (req, res) => {
         res.status(500).json({ success: false, message: 'Server error during login.' });
     }
 };
+
+exports.signup = async (req, res) => {
+    const { username, password, name } = req.body;
+
+    try {
+        if (!username || !password || !name) {
+            return res.status(400).json({ success: false, message: 'All fields are required.' });
+        }
+
+        const { data, error } = await supabase
+            .from('student')
+            .insert([{ username, password, name, role: 'student' }])
+            .select('student_id, name, username, role')
+            .single();
+
+        if (error) {
+            console.error("Supabase Signup Error:", error);
+            if (error.code === '23505') {
+                return res.status(400).json({ success: false, message: 'Username is already taken.' });
+            }
+            return res.status(500).json({ success: false, message: 'Database error during signup.' });
+        }
+
+        res.status(201).json({
+            success: true,
+            message: 'Registration successful',
+            user: { id: data.student_id, name: data.name, username: data.username, role: data.role || 'student' }
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, message: 'Server error during signup.' });
+    }
+};

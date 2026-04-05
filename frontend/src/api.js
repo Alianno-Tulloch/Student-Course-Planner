@@ -66,9 +66,16 @@ async function searchCourses() {
 async function addCourse(courseCode, buttonElement) {
     const user = JSON.parse(localStorage.getItem('loggedInUser'));
     
-    // Fallback values for now since we haven't linked Users to Students yet
-    const studentId = user ? user.id : 1; 
-    const termId = 1; // Default to the first term (e.g., Fall 2026)
+    // Ensure student is logged in
+    if (!user) {
+        alert("You must be logged in to add courses.");
+        return;
+    }
+    const studentId = user.id; 
+    
+    // Grab term from dropdown if available, else default to 1
+    const termSelect = document.getElementById('term-select');
+    const termId = termSelect ? parseInt(termSelect.value) : 1;
 
     try {
         const response = await fetch(`${API_URL}/courses/add`, {
@@ -156,11 +163,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Signup Form Event Listener
+    const signupForm = document.getElementById('signup-form');
+    if (signupForm) {
+        signupForm.addEventListener('submit', submitSignup);
+    }
+
     // 3. Populate Home Page Dashboard elements
     loadUpcomingCourses();
     
     // 4. Populate Schedule page
     loadScheduleTable();
+
+    // 5. Populate Progress page
+    loadProgress();
 });
 
 // Fetch and render upcoming courses on the Home Dashboard
@@ -224,9 +240,10 @@ async function loadScheduleTable() {
         courses.forEach(course => {
             const daysString = course.meeting_days || '';
             const cardHTML = `
-                <div style="background-color: #6c5ce7; color: white; padding: 10px; margin-bottom: 10px; border-radius: 6px; font-size: 0.9rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <div style="background-color: #6c5ce7; color: white; padding: 10px; margin-bottom: 10px; border-radius: 6px; font-size: 0.9rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); position: relative;">
                     <strong>${course.course_code}</strong><br>
                     <span style="font-size: 0.8rem;">${course.meeting_times || 'TBA'}</span>
+                    <button onclick="dropCourse(${course.enrollment_id}, this)" style="position: absolute; top: 5px; right: 5px; background: none; border: none; color: white; font-weight: bold; cursor: pointer; font-size: 0.9rem;" title="Drop Course">&#10005;</button>
                 </div>
             `;
 
@@ -286,5 +303,79 @@ async function submitNewCourse(event) {
         console.error('Error creating course:', error);
         messageDisplay.innerText = 'Server error during creation.';
         messageDisplay.style.color = '#e53e3e';
+    }
+}
+
+// Function to drop a course from schedule
+async function dropCourse(enrollmentId, buttonElement) {
+    if (!confirm("Are you sure you want to drop this course?")) return;
+
+    try {
+        const response = await fetch(`${API_URL}/courses/delete/${enrollmentId}`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            // Remove the card visually
+            buttonElement.parentElement.remove();
+        } else {
+            alert('Failed to drop course. It may have already been removed.');
+        }
+    } catch (error) {
+        console.error('Error dropping course:', error);
+    }
+}
+
+// Function to process user signups
+async function submitSignup(event) {
+    event.preventDefault();
+    
+    const name = document.getElementById('signup-name').value;
+    const username = document.getElementById('signup-username').value;
+    const password = document.getElementById('signup-password').value;
+    const errorText = document.getElementById('signup-error');
+
+    try {
+        const response = await fetch(`${API_URL}/auth/signup`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, username, password })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert(data.message);
+            window.location.href = 'login.html';
+        } else {
+            errorText.innerText = data.message;
+            errorText.style.display = 'block';
+        }
+    } catch (error) {
+        errorText.innerText = "Could not connect to the Backend server.";
+        errorText.style.display = 'block';
+    }
+}
+
+// Function to load degree progress dynamically
+async function loadProgress() {
+    const progressBar = document.getElementById('progress-bar-fill');
+    const textDisplay = document.getElementById('progress-text');
+    
+    if (!progressBar || !textDisplay) return;
+
+    const user = checkLoginStatus();
+    if (!user) return;
+
+    try {
+        const response = await fetch(`${API_URL}/courses/progress/${user.id}`);
+        const data = await response.json();
+
+        if (response.ok) {
+            progressBar.style.width = `${data.percentage}%`;
+            textDisplay.innerHTML = `<strong>${data.total_credits} / ${data.req_credits}</strong> Credits Completed (${data.percentage}%)`;
+        }
+    } catch (error) {
+        console.error('Error loading progress:', error);
     }
 }

@@ -243,3 +243,45 @@ exports.createNewGlobalCourse = async (req, res) => {
         res.status(500).json({ error: 'Server error while creating global course.' })
     }
 }
+
+// Fetch a student's degree progress
+exports.getStudentProgress = async (req, res) => {
+    try {
+        const { student_id } = req.params;
+        if (!student_id) return res.status(400).json({ error: 'Student ID required.' });
+        
+        // Sum total credits across enrolled courses.
+        const { data, error } = await supabase
+            .from('course_enrollment')
+            .select(`
+                course (
+                    credits
+                )
+            `)
+            .eq('student_id', student_id);
+
+        if (error) {
+            console.error(error);
+            return res.status(500).json({ error: error.message });
+        }
+
+        let totalCredits = 0;
+        data.forEach(enroll => {
+            if (enroll.course && enroll.course.credits) {
+                totalCredits += parseFloat(enroll.course.credits);
+            }
+        });
+
+        // Arbitrary standard graduation requirement: 30 credits
+        const req_credits = 30.0;
+        const progressPercentage = Math.min((totalCredits / req_credits) * 100, 100);
+
+        res.json({
+            total_credits: totalCredits,
+            req_credits: req_credits,
+            percentage: progressPercentage.toFixed(1)
+        });
+    } catch (err) {
+        res.status(500).json({ error: 'Server error fetching progress.' });
+    }
+}

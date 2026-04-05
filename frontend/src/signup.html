@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Course Planner - Log In</title>
+    <title>Student Course Planner - Sign Up</title>
     <link rel="stylesheet" href="styles.css">
     <style>
         .login-container {
@@ -28,7 +28,7 @@
         }
 
         .login-btn {
-            background-color: #6c5ce7;
+            background-color: #20c997;
             color: white;
             border: none;
             padding: 12px;
@@ -40,45 +40,35 @@
         }
 
         .login-btn:hover {
-            background-color: #5a4bcf;
+            background-color: #17a589;
         }
         
-        #error-message {
+        #signup-error {
             color: #d63031;
             margin-top: 15px;
             display: none;
-        }
-        
-        .mock-hint {
-            font-size: 0.8rem;
-            color: #888;
-            margin-top: 20px;
-            text-align: left;
+            font-weight: bold;
         }
     </style>
 </head>
 
 <body>
-
     <div class="container login-container">
         <div class="logo" style="margin: 0 auto 20px;"></div>
-        <h2 style="color: #6c5ce7;">Welcome Back</h2>
-        <p style="color: #666; margin-top: 5px;">Sign in to your Course Planner</p>
+        <h2 style="color: #6c5ce7;">Join the Program</h2>
+        <p style="color: #666; margin-top: 5px;">Create your student account</p>
 
-        <form class="login-form" id="login-form">
-            <input type="text" id="username" class="login-input" placeholder="Username" required>
-            <input type="password" id="password" class="login-input" placeholder="Password" required>
-            <button type="submit" class="login-btn">Log In</button>
+        <form class="login-form" id="signup-form">
+            <input type="text" id="signup-name" class="login-input" placeholder="Full Name" required>
+            <input type="text" id="signup-username" class="login-input" placeholder="Desired Username" required>
+            <input type="password" id="signup-password" class="login-input" placeholder="Password" required>
+            <button type="submit" class="login-btn">Register</button>
         </form>
-        <p id="error-message"></p>
+        <p id="signup-error"></p>
         
         <p style="margin-top: 20px; font-size: 0.9rem;">
-            Don't have an account? <a href="signup.html" style="color: #6c5ce7; font-weight: bold; text-decoration: none;">Sign Up</a>
+            Already have an account? <a href="login.html" style="color: #6c5ce7; font-weight: bold; text-decoration: none;">Log In</a>
         </p>
-        
-        <div class="mock-hint">
-            <strong>Hint (Mock Data):</strong> Try username: <code>kyle</code>, password: <code>password</code>
-        </div>
     </div>
 
     <script src="api.js"></script>
