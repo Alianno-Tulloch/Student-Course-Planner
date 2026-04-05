@@ -2,6 +2,7 @@
 CREATE TABLE Major (
     major_id SERIAL PRIMARY KEY,
     major_name VARCHAR(100) NOT NULL,
+    level VARCHAR(20) DEFAULT 'undergrad',
     gpa_req DECIMAL(4,2),
     req_credits DECIMAL(4,2)
 );
@@ -29,10 +30,19 @@ CREATE TABLE Term (
 CREATE TABLE Course (
     course_code VARCHAR(10) PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
+    level VARCHAR(20) DEFAULT 'undergrad',
     credits DECIMAL(3,1),
     description TEXT,
     meeting_days VARCHAR(20),  -- e.g., 'MWF', 'TT'
     meeting_times VARCHAR(50)  -- e.g., '10:00 AM - 11:20 AM'
+);
+
+-- 4.5 Junction for Course vs Term (Course Offerings)
+CREATE TABLE Course_Offering (
+    offering_id SERIAL PRIMARY KEY,
+    course_code VARCHAR(10) REFERENCES Course(course_code),
+    term_id INT REFERENCES Term(term_id),
+    UNIQUE(course_code, term_id)
 );
 
 -- 5. Junction for Major Requirements
@@ -47,8 +57,7 @@ CREATE TABLE Major_Course_Junction (
 CREATE TABLE Course_Enrollment (
     enrollment_id SERIAL PRIMARY KEY,
     student_id INT REFERENCES Student(student_id),
-    course_code VARCHAR(10) REFERENCES Course(course_code),
-    term_id INT REFERENCES Term(term_id),
+    offering_id INT REFERENCES Course_Offering(offering_id),
     status SMALLINT DEFAULT 0, -- 0 = planned, 1 = in progress, 2 = completed
     grade DECIMAL(4,2)
 );

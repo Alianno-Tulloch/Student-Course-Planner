@@ -20,16 +20,20 @@ const checkLoginStatus = () => {
     return userData ? JSON.parse(userData) : null;
 };
 
-// Sends a search query to the backend and renders result cards from Supabase
+// Sends a search query to the backend and renders result cards from Supabase, filtering by Course_Offering terms
 async function searchCourses() {
     const searchInput = document.getElementById('search-input');
+    const termSelect = document.getElementById('term-select');
+    const levelSelect = document.getElementById('level-select');
     const resultsGrid = document.getElementById('results-grid');
-    if (!searchInput || !resultsGrid) return;
+    if (!searchInput || !resultsGrid || !termSelect) return;
 
     const searchTerm = searchInput.value;
+    const termId = termSelect.value;
+    const levelId = levelSelect ? levelSelect.value : 'all';
 
     try {
-        const response = await fetch(`${API_URL}/courses/search?q=${encodeURIComponent(searchTerm)}`);
+        const response = await fetch(`${API_URL}/courses/search?q=${encodeURIComponent(searchTerm)}&term_id=${termId}&level=${levelId}`);
         const courses = await response.json();
 
         // Clear out the previous results
@@ -45,12 +49,12 @@ async function searchCourses() {
             const card = document.createElement('div');
             card.className = 'course-card';
             card.innerHTML = `
-                <div style="font-weight: bold; font-size: 1.1rem; color: #6c5ce7; margin-bottom: 5px;">${course.course_code}</div>
+                <div style="font-weight: bold; font-size: 1.1rem; color: #6c5ce7; margin-bottom: 5px;">${course.course_code} ${course.level === 'graduate' ? '(Grad)' : ''}</div>
                 <p style="margin-bottom: 5px; color: #333; font-weight: 600; line-height: 1.2;">${course.title}</p>
                 <p style="font-size: 0.85rem; color: #666; margin-bottom: 15px; height: 40px; overflow: hidden; text-overflow: ellipsis;">
                     ${course.description || 'No description available.'}
                 </p>
-                <button onclick="addCourse('${course.course_code}', this)">Add to Schedule</button>
+                <button onclick="addCourse(${course.offering_id}, this)">Add to Schedule</button>
                 <p style="font-size: 0.8rem; margin-top: 10px; color: #a0aec0;">${course.credits || '0.5'} Credits</p>
             `;
             resultsGrid.appendChild(card);
@@ -62,8 +66,8 @@ async function searchCourses() {
     }
 }
 
-// Sends a request to add a course to the Course_Enrollment table
-async function addCourse(courseCode, buttonElement) {
+// Sends a request to add a normalized offering to the Course_Enrollment table
+async function addCourse(offeringId, buttonElement) {
     const user = JSON.parse(localStorage.getItem('loggedInUser'));
     
     // Ensure student is logged in
@@ -72,10 +76,6 @@ async function addCourse(courseCode, buttonElement) {
         return;
     }
     const studentId = user.id; 
-    
-    // Grab term from dropdown if available, else default to 1
-    const termSelect = document.getElementById('term-select');
-    const termId = termSelect ? parseInt(termSelect.value) : 1;
 
     try {
         const response = await fetch(`${API_URL}/courses/add`, {
@@ -83,8 +83,7 @@ async function addCourse(courseCode, buttonElement) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 student_id: studentId, 
-                course_code: courseCode, 
-                term_id: termId,
+                offering_id: offeringId, 
                 status: 0 // Default to "Planned"
             })
         });
@@ -122,6 +121,18 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Also trigger an initial search instantly to load all courses by default
         searchCourses();
+
+        // Bind Term Dropdown filter changing logic
+        const termSelect = document.getElementById('term-select');
+        if (termSelect) {
+            termSelect.addEventListener('change', searchCourses);
+        }
+
+        // Bind Level Dropdown filter changing logic
+        const levelSelect = document.getElementById('level-select');
+        if (levelSelect) {
+            levelSelect.addEventListener('change', searchCourses);
+        }
     }
 
     // 2. Setup Login Form Event Listener
@@ -277,6 +288,8 @@ async function submitNewCourse(event) {
     const description = document.getElementById('new-course-desc').value;
     const meeting_days = document.getElementById('new-course-days').value;
     const meeting_times = document.getElementById('new-course-times').value;
+    const term_id = document.getElementById('new-course-term').value;
+    const level = document.getElementById('new-course-level').value;
     
     const messageDisplay = document.getElementById('admin-message');
 
@@ -285,7 +298,7 @@ async function submitNewCourse(event) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                course_code, title, credits, description, meeting_days, meeting_times
+                course_code, title, credits, description, meeting_days, meeting_times, term_id: parseInt(term_id), level
             })
         });
 

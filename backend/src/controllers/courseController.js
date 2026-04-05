@@ -20,15 +20,25 @@ exports.getAllCourses = async (req, res) => {
     }
 }
 
-// Search courses by code or title
+// Search courses strictly by active Term Offerings and Academic Level
 exports.searchCourses = async (req, res) => {
     try {
         const query = req.query.q
+        const term_id = req.query.term_id
+        const level = req.query.level
 
         let supabaseQuery = supabase
             .from('course')
-            .select('*')
+            .select('*, course_offering!inner(term_id, offering_id)')
             .order('course_code', { ascending: true })
+
+        if (term_id) {
+            supabaseQuery = supabaseQuery.eq('course_offering.term_id', term_id)
+        }
+        
+        if (level && level !== 'all') {
+            supabaseQuery = supabaseQuery.eq('level', level)
+        }
 
         if (query && query.trim() !== '') {
             const searchTerm = query.trim()
@@ -41,20 +51,27 @@ exports.searchCourses = async (req, res) => {
             return res.status(500).json({ error: error.message })
         }
 
-        res.json(data)
+        // Map and clean response to extract offering_id explicitly for the frontend
+        const cleanedData = data.map(course => {
+            course.offering_id = course.course_offering[0].offering_id;
+            delete course.course_offering;
+            return course;
+        });
+
+        res.json(cleanedData)
     } catch (err) {
         res.status(500).json({ error: 'Server error while searching courses.' })
     }
 }
 
-// Add a course to a student's schedule
+// Add a normalized offering to a student's schedule
 exports.addCourse = async (req, res) => {
     try {
-        const { student_id, course_code, term_id, status, grade } = req.body
+        const { student_id, offering_id, status, grade } = req.body
 
-        if (!student_id || !course_code || !term_id) {
+        if (!student_id || !offering_id) {
             return res.status(400).json({
-                error: 'student_id, course_code, and term_id are required.'
+                error: 'student_id and offering_id are required.'
             })
         }
 
@@ -69,8 +86,7 @@ exports.addCourse = async (req, res) => {
             .insert([
                 {
                     student_id,
-                    course_code,
-                    term_id,
+                    offering_id,
                     status: status !== undefined ? status : 0,
                     grade: grade !== undefined ? grade : null
                 }
@@ -157,7 +173,7 @@ exports.deleteCourse = async (req, res) => {
     }
 }
 
-// Fetch a student's schedule (enrolled courses with meeting times)
+// Fetch a student's schedule natively through Deep Joins
 exports.getStudentSchedule = async (req, res) => {
     try {
         const { student_id } = req.params
@@ -166,17 +182,20 @@ exports.getStudentSchedule = async (req, res) => {
             return res.status(400).json({ error: 'Student ID is required.' })
         }
 
-        // Fetch course enrollments with status 0 (planned) or 1 (in progress) and join the matching course details
+        // Deep Join: Enrollment -> Course Offering -> Course Database
         const { data, error } = await supabase
             .from('course_enrollment')
             .select(`
                 enrollment_id,
                 status,
-                course (
-                    course_code,
-                    title,
-                    meeting_days,
-                    meeting_times
+                course_offering (
+                    term_id,
+                    course (
+                        course_code,
+                        title,
+                        meeting_days,
+                        meeting_times
+                    )
                 )
             `)
             .eq('student_id', student_id)
@@ -187,14 +206,15 @@ exports.getStudentSchedule = async (req, res) => {
             return res.status(500).json({ error: error.message })
         }
 
-        // Flattens the response so the frontend receives a clean array of courses
+        // Flattens the deep join so the frontend receives a clean array
         const formattedSchedule = data.map(item => ({
             enrollment_id: item.enrollment_id,
             status: item.status,
-            course_code: item.course.course_code,
-            title: item.course.title,
-            meeting_days: item.course.meeting_days,
-            meeting_times: item.course.meeting_times
+            term_id: item.course_offering.term_id,
+            course_code: item.course_offering.course.course_code,
+            title: item.course_offering.course.title,
+            meeting_days: item.course_offering.course.meeting_days,
+            meeting_times: item.course_offering.course.meeting_times
         }));
 
         res.json(formattedSchedule)
@@ -203,41 +223,54 @@ exports.getStudentSchedule = async (req, res) => {
     }
 }
 
-// Admin function to create a brand new global course
+// Admin function to create a brand new global course tied to a specific term and level
 exports.createNewGlobalCourse = async (req, res) => {
     try {
-        const { course_code, title, credits, description, meeting_days, meeting_times } = req.body
+        const { course_code, title, credits, description, meeting_days, meeting_times, term_id, level } = req.body
 
-        if (!course_code || !title) {
-            return res.status(400).json({ error: 'course_code and title are absolutely required.' })
+        if (!course_code || !title || !term_id) {
+            return res.status(400).json({ error: 'course_code, title, and term_id are absolutely required.' })
         }
 
-        const { data, error } = await supabase
+        // 1. Upsert into Course table (create if absent, update if exists)
+        const { data: courseData, error: courseError } = await supabase
             .from('course')
-            .insert([
+            .upsert([
                 {
                     course_code,
                     title,
+                    level: level || 'undergrad',
                     credits: credits || 0.5,
                     description: description || null,
                     meeting_days: meeting_days || null,
                     meeting_times: meeting_times || null
                 }
-            ])
+            ], { onConflict: 'course_code' })
             .select()
 
-        if (error) {
-            console.error(error);
-            // Catch unique constraint violation for course_code
-            if (error.code === '23505') {
-                return res.status(400).json({ error: 'This course code already exists.' })
+        if (courseError) {
+            console.error(courseError);
+            return res.status(500).json({ error: courseError.message })
+        }
+
+        // 2. Map course to specific term offering
+        const { data: offeringData, error: offeringError } = await supabase
+            .from('course_offering')
+            .insert([{ course_code, term_id }])
+            .select()
+
+        if (offeringError) {
+            console.error(offeringError);
+            // Catch unique constraint violation (they already created this class in this term)
+            if (offeringError.code === '23505') {
+                return res.status(400).json({ error: `Course ${course_code} is already offered in Term ${term_id}.` })
             }
-            return res.status(500).json({ error: error.message })
+            return res.status(500).json({ error: offeringError.message })
         }
 
         res.status(201).json({
-            message: `Global course ${course_code} successfully published!`,
-            data
+            message: `Course ${course_code} successfully published to Term ${term_id}!`,
+            data: courseData
         })
     } catch (err) {
         res.status(500).json({ error: 'Server error while creating global course.' })
@@ -250,12 +283,14 @@ exports.getStudentProgress = async (req, res) => {
         const { student_id } = req.params;
         if (!student_id) return res.status(400).json({ error: 'Student ID required.' });
         
-        // Sum total credits across enrolled courses.
+        // Sum total credits across enrolled courses deep join.
         const { data, error } = await supabase
             .from('course_enrollment')
             .select(`
-                course (
-                    credits
+                course_offering (
+                    course (
+                        credits
+                    )
                 )
             `)
             .eq('student_id', student_id);
@@ -267,8 +302,8 @@ exports.getStudentProgress = async (req, res) => {
 
         let totalCredits = 0;
         data.forEach(enroll => {
-            if (enroll.course && enroll.course.credits) {
-                totalCredits += parseFloat(enroll.course.credits);
+            if (enroll.course_offering && enroll.course_offering.course && enroll.course_offering.course.credits) {
+                totalCredits += parseFloat(enroll.course_offering.course.credits);
             }
         });
 
