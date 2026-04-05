@@ -26,6 +26,14 @@ CREATE TABLE Term (
     end_date DATE
 );
 
+-- 3.5 Create Teacher
+CREATE TABLE Teacher (
+    teacher_id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE,
+    department VARCHAR(50)
+);
+
 -- 4. Create Course
 CREATE TABLE Course (
     course_code VARCHAR(10) PRIMARY KEY,
@@ -42,6 +50,7 @@ CREATE TABLE Course_Offering (
     offering_id SERIAL PRIMARY KEY,
     course_code VARCHAR(10) REFERENCES Course(course_code),
     term_id INT REFERENCES Term(term_id),
+    teacher_id INT REFERENCES Teacher(teacher_id),
     UNIQUE(course_code, term_id)
 );
 
