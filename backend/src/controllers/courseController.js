@@ -394,8 +394,6 @@ exports.getStudentProgress = async (req, res) => {
         const { student_id } = req.params;
         if (!student_id) return res.status(400).json({ error: 'Student ID required.' });
         
-        console.warn(`[DEBUG] => API WAS HIT FOR STUDENT: ${student_id}`);
-        
         // Retrieve explicit Student traits (GPA, Major, Minor)
         const { data: studentData, error: studentError } = await supabase
             .from('student')
@@ -410,7 +408,6 @@ exports.getStudentProgress = async (req, res) => {
 
         if (studentError) {
             console.error("Supabase Student fetch error:", studentError);
-            // Don't completely fail, but log it so we can see what's wrong.
         }
 
         // Sum total credits and history across enrolled courses deep join.
@@ -460,16 +457,12 @@ exports.getStudentProgress = async (req, res) => {
                 .select('course_code, core_course')
                 .eq('major_id', studentData.major_id);
 
-            console.warn(`[DEBUG] major_course_junction returned ${junctionData?.length || 0} rows for major_id ${studentData.major_id}`);
-
             const coreCourseMap = new Set(junctionData?.filter(j => j.core_course).map(j => j.course_code) || []);
-            console.warn(`[DEBUG] Core course map size: ${coreCourseMap.size}`, Array.from(coreCourseMap));
 
             data?.forEach(enroll => {
                 if (enroll.status === 2 && enroll.course_offering && enroll.course_offering.course) {
                     const c = enroll.course_offering.course;
                     const creds = parseFloat(c.credits) || 0;
-                    console.warn(`[DEBUG] Found Completed Course ${c.course_code} - ${creds} credits.`);
                     if (coreCourseMap.has(c.course_code)) {
                         coreCredits += creds;
                     } else {
@@ -478,8 +471,6 @@ exports.getStudentProgress = async (req, res) => {
                 }
             });
         }
-
-        console.warn(`[DEBUG] Final Output: Core(${coreCredits}), Elective(${electiveCredits})`);
 
         // Standard requirement: 30 credits (or from Major table)
         const req_credits = studentData?.major?.req_credits || 30.0;
@@ -505,10 +496,9 @@ exports.getStudentProgress = async (req, res) => {
             elective_percentage: electiveProgress.toFixed(1),
             history: history
         };
-        console.warn('[DEBUG] Sending response:', JSON.stringify(responsePayload));
         res.json(responsePayload);
     } catch (err) {
-        console.error('[DEBUG] CRASH IN PROGRESS ENDPOINT:', err);
+        console.error('CRASH IN PROGRESS ENDPOINT:', err);
         res.status(500).json({ error: 'Server error fetching progress.' });
     }
 }
