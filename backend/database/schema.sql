@@ -29,7 +29,9 @@ CREATE TABLE Course (
     course_code VARCHAR(10) PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     credits DECIMAL(3,1),
-    description TEXT
+    description TEXT,
+    meeting_days VARCHAR(20),  -- e.g., 'MWF', 'TT'
+    meeting_times VARCHAR(50)  -- e.g., '10:00 AM - 11:20 AM'
 );
 
 -- 5. Junction for Major Requirements

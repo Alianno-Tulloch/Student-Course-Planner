@@ -150,4 +150,90 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // 3. Populate Home Page Dashboard elements
+    loadUpcomingCourses();
+    
+    // 4. Populate Schedule page
+    loadScheduleTable();
 });
+
+// Fetch and render upcoming courses on the Home Dashboard
+async function loadUpcomingCourses() {
+    const flowContainer = document.getElementById('upcoming-courses-flow');
+    if (!flowContainer) return;
+
+    const user = checkLoginStatus();
+    if (!user) return;
+
+    try {
+        const response = await fetch(`${API_URL}/courses/schedule/${user.id}`);
+        const courses = await response.json();
+
+        flowContainer.innerHTML = '';
+
+        if (!courses || courses.length === 0) {
+            flowContainer.innerHTML = '<p style="color: #a0aec0;">No upcoming courses scheduled. Go add some!</p>';
+            return;
+        }
+
+        courses.forEach((course, index) => {
+            const card = document.createElement('div');
+            card.className = 'course-card-orange';
+            card.innerHTML = `
+                <strong>${course.course_code}</strong>
+                <p style="font-size: 0.85rem; margin-top: 5px;">${course.meeting_days || 'TBA'} ${course.meeting_times || ''}</p>
+            `;
+            flowContainer.appendChild(card);
+
+            if (index < courses.length - 1) {
+                const arrow = document.createElement('div');
+                arrow.className = 'arrow';
+                arrow.innerHTML = '&#8594;';
+                flowContainer.appendChild(arrow);
+            }
+        });
+    } catch (error) {
+        console.error('Error loading upcoming courses:', error);
+        flowContainer.innerHTML = '<p style="color: #e53e3e;">Failed to load courses.</p>';
+    }
+}
+
+// Fetch and render the full schedule on the Schedule page
+async function loadScheduleTable() {
+    const tableBody = document.getElementById('schedule-table-body');
+    if (!tableBody) return;
+
+    const user = checkLoginStatus();
+    if (!user) return;
+
+    try {
+        const response = await fetch(`${API_URL}/courses/schedule/${user.id}`);
+        const courses = await response.json();
+
+        if (!courses || courses.length === 0) {
+            document.getElementById('schedule-Mon').innerHTML = '<p style="color: #a0aec0; font-size:0.8rem;">Empty...</p>';
+            return;
+        }
+
+        courses.forEach(course => {
+            const daysString = course.meeting_days || '';
+            const cardHTML = `
+                <div style="background-color: #6c5ce7; color: white; padding: 10px; margin-bottom: 10px; border-radius: 6px; font-size: 0.9rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <strong>${course.course_code}</strong><br>
+                    <span style="font-size: 0.8rem;">${course.meeting_times || 'TBA'}</span>
+                </div>
+            `;
+
+            const days = daysString.replace(/Th/g, 'R');
+            if (days.includes('M')) document.getElementById('schedule-Mon').innerHTML += cardHTML;
+            if (days.includes('T')) document.getElementById('schedule-Tues').innerHTML += cardHTML;
+            if (days.includes('W')) document.getElementById('schedule-Wed').innerHTML += cardHTML;
+            if (days.includes('R')) document.getElementById('schedule-Thurs').innerHTML += cardHTML;
+            if (days.includes('F')) document.getElementById('schedule-Fri').innerHTML += cardHTML;
+        });
+
+    } catch (error) {
+        console.error('Error loading schedule:', error);
+    }
+}

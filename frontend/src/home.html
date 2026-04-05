@@ -14,7 +14,6 @@
         <header>
             <a href="home.html" class="logo"></a>
             <nav>
-                <a class="button" href="login.html">Log In</a>
                 <a class="button" href="progress.html">Degree Progress</a>
                 <a class="button" href="schedule.html">View Schedule</a>
                 <a class="button" href="course_search.html">View Courses</a>
@@ -28,20 +27,10 @@
 
         <div class="upcoming-courses">
             <h3 class="section-title">Your Upcoming Courses:</h3>
-            <div class="course-flow">
+            <div class="course-flow" id="upcoming-courses-flow">
                 <div class="course-card-orange">
-                    <strong>CPXXX</strong>
-                    <p>MWF X:00 - X:00</p>
-                </div>
-                <div class="arrow">&#8594;</div>
-                <div class="course-card-orange">
-                    <strong>CPXXX</strong>
-                    <p>MWF X:00 - X:00</p>
-                </div>
-                <div class="arrow">&#8594;</div>
-                <div class="course-card-orange">
-                    <strong>CPXXX</strong>
-                    <p>MWF X:00 - X:00</p>
+                    <strong>Loading...</strong>
+                    <p>Fetching your schedule</p>
                 </div>
             </div>
         </div>
@@ -63,6 +52,7 @@
             </div>
         </div>
     </div>
+    <script src="api.js"></script>
 </body>
 
 </html>

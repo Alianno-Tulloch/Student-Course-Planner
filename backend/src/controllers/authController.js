@@ -6,11 +6,15 @@ exports.login = async (req, res) => {
     try {
         // Query Supabase for a student with this username and password
         const { data, error } = await supabase
-            .from('Student') // Ensure table name matches your Supabase schema exactly
+            .from('student') // Standardized to lowercase to match standard Postgres behavior
             .select('student_id, name, username')
             .eq('username', username)
             .eq('password', password)
             .single();
+
+        if (error) {
+            console.error("Supabase Login Error:", error);
+        }
 
         if (error || !data) {
             return res.status(401).json({ success: false, message: 'Invalid username or password' });

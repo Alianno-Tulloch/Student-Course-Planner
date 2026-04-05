@@ -25,17 +25,17 @@ exports.searchCourses = async (req, res) => {
     try {
         const query = req.query.q
 
-        if (!query || query.trim() === '') {
-            return res.status(400).json({ error: 'Search query is required.' })
-        }
-
-        const searchTerm = query.trim()
-
-        const { data, error } = await supabase
+        let supabaseQuery = supabase
             .from('course')
             .select('*')
-            .or(`course_code.ilike.%${searchTerm}%,title.ilike.%${searchTerm}%`)
             .order('course_code', { ascending: true })
+
+        if (query && query.trim() !== '') {
+            const searchTerm = query.trim()
+            supabaseQuery = supabaseQuery.or(`course_code.ilike.%${searchTerm}%,title.ilike.%${searchTerm}%`)
+        }
+
+        const { data, error } = await supabaseQuery
 
         if (error) {
             return res.status(500).json({ error: error.message })
@@ -154,5 +154,51 @@ exports.deleteCourse = async (req, res) => {
         })
     } catch (err) {
         res.status(500).json({ error: 'Server error while deleting course.' })
+    }
+}
+
+// Fetch a student's schedule (enrolled courses with meeting times)
+exports.getStudentSchedule = async (req, res) => {
+    try {
+        const { student_id } = req.params
+
+        if (!student_id) {
+            return res.status(400).json({ error: 'Student ID is required.' })
+        }
+
+        // Fetch course enrollments with status 0 (planned) or 1 (in progress) and join the matching course details
+        const { data, error } = await supabase
+            .from('course_enrollment')
+            .select(`
+                enrollment_id,
+                status,
+                course (
+                    course_code,
+                    title,
+                    meeting_days,
+                    meeting_times
+                )
+            `)
+            .eq('student_id', student_id)
+            .in('status', [0, 1]);
+
+        if (error) {
+            console.error(error);
+            return res.status(500).json({ error: error.message })
+        }
+
+        // Flattens the response so the frontend receives a clean array of courses
+        const formattedSchedule = data.map(item => ({
+            enrollment_id: item.enrollment_id,
+            status: item.status,
+            course_code: item.course.course_code,
+            title: item.course.title,
+            meeting_days: item.course.meeting_days,
+            meeting_times: item.course.meeting_times
+        }));
+
+        res.json(formattedSchedule)
+    } catch (err) {
+        res.status(500).json({ error: 'Server error while fetching schedule.' })
     }
 }
