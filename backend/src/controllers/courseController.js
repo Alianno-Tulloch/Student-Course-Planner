@@ -502,3 +502,53 @@ exports.getStudentProgress = async (req, res) => {
         res.status(500).json({ error: 'Server error fetching progress.' });
     }
 }
+
+// Intelligent Core Course Recommender
+exports.getRecommendedCourses = async (req, res) => {
+    try {
+        const { student_id } = req.params;
+        
+        // 1. Get Student's Major
+        const { data: student } = await supabase
+            .from('student')
+            .select('major_id')
+            .eq('student_id', student_id)
+            .single();
+
+        if (!student || !student.major_id) return res.json([]);
+
+        // 2. Get all Core Requirements for that Major
+        const { data: coreRequirements } = await supabase
+            .from('major_course_junction')
+            .select('course_code')
+            .eq('major_id', student.major_id)
+            .eq('core_course', true);
+
+        const coreCodes = coreRequirements?.map(c => c.course_code) || [];
+
+        // 3. Get Student's Current Enrollments (to avoid recommending what they already have)
+        const { data: enrollments } = await supabase
+            .from('course_enrollment')
+            .select('course_offering(course_code)')
+            .eq('student_id', student_id);
+        
+        const takenCodes = enrollments?.map(e => e.course_offering.course_code) || [];
+
+        // 4. Filter: Core courses NOT in enrollment history
+        const recommendedCodes = coreCodes.filter(code => !takenCodes.includes(code));
+
+        if (recommendedCodes.length === 0) return res.json([]);
+
+        // 5. Fetch full Course details for the results
+        const { data: courses } = await supabase
+            .from('course')
+            .select('course_code, title')
+            .in('course_code', recommendedCodes)
+            .limit(4);
+
+        res.json(courses || []);
+    } catch (err) {
+        console.error('Error fetching recommendations:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+}

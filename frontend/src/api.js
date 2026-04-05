@@ -34,6 +34,15 @@ async function searchCourses() {
     const levelId = levelSelect ? levelSelect.value : 'all';
     const departmentId = departmentSelect ? departmentSelect.value : 'all';
 
+    // CHECK IF URL PARAMETER EXISTS (For recommendations)
+    const urlParams = new URLSearchParams(window.location.search);
+    const prefillSearch = urlParams.get('search');
+    if (prefillSearch && !searchTerm) {
+        searchInput.value = prefillSearch;
+        // Re-call search with new value
+        return searchCourses();
+    }
+
     try {
         const response = await fetch(`${API_URL}/courses/search?q=${encodeURIComponent(searchTerm)}&term_id=${termId}&level=${levelId}&department=${departmentId}`);
         const courses = await response.json();
@@ -195,6 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 3. Populate Home Page Dashboard elements
     loadUpcomingCourses();
+    loadRecommendedCourses();
     
     // 4. Populate Schedule page
     loadScheduleTable();
@@ -566,5 +576,40 @@ async function loadProgress() {
         console.error('Error loading progress:', error);
         if (overviewBox) overviewBox.innerHTML = `<p style="color: #e53e3e; padding: 10px;">Backend Error: ${error.message}</p>`;
         if (historyBox) historyBox.innerHTML = '<p style="color: #e53e3e; grid-column: span 2; padding: 10px;">Failed to load data. Please restart the backend.</p>';
+    }
+}
+
+// Fetch and render recommended core courses on the Home Dashboard
+async function loadRecommendedCourses() {
+    const grid = document.querySelector('.recommended-grid');
+    if (!grid) return;
+
+    const user = checkLoginStatus();
+    if (!user) return;
+
+    try {
+        const response = await fetch(`${API_URL}/courses/recommended/${user.id}`);
+        const recommendations = await response.json();
+
+        if (response.ok && recommendations.length > 0) {
+            grid.innerHTML = '';
+            recommendations.forEach(course => {
+                const card = document.createElement('div');
+                card.className = 'course-card-dark';
+                card.style.cursor = 'pointer';
+                card.innerHTML = `<strong>${course.course_code}</strong>`;
+                card.title = course.title; // Show full title on hover
+                card.onclick = () => {
+                    // Redirect to search page with this course pre-filled
+                    window.location.href = `course_search.html?search=${course.course_code}`;
+                };
+                grid.appendChild(card);
+            });
+        } else {
+            // No recommendations or error
+            grid.innerHTML = '<p style="color: #a0aec0; width: 100%; text-align: center;">You have completed all core requirements!</p>';
+        }
+    } catch (error) {
+        console.error('Error loading recommendations:', error);
     }
 }
