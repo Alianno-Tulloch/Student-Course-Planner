@@ -40,11 +40,16 @@ Wiki / Activity Blog: <https://github.com/Alianno-Tulloch/Student-Course-Planner
 
     `npm install`
 
-4. Start the server, using this terminal command:
+4. Create a .env file in the backend folder, and add the following environment variables:
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_KEY=your_supabase_anon_key
+PORT=5000
+
+5. Start the server, using this terminal command:
 
     `npm start`
 
-5. The console should display: Server is running on port 5000
+6. The console should display: Server is running on port 5000
 
 ### Start the Frontend
 1. Open your file explorer and navigate to frontend/src/.
