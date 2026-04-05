@@ -516,14 +516,19 @@ async function loadProgress() {
         const data = await response.json();
 
         if (response.ok) {
-            if (progressBar) progressBar.style.width = `${data.percentage}%`;
-            if (textDisplay) textDisplay.innerHTML = `<strong>${data.total_credits} / ${data.req_credits}</strong> Credits Completed (${data.percentage}%)`;
+            // Update page title with major name
+            const pageTitle = document.querySelector('.page-title');
+            if (pageTitle) pageTitle.innerText = `${data.major} Degree Progress`;
+
+            if (progressBar) progressBar.style.width = `${data.core_percentage}%`;
+            if (textDisplay) textDisplay.innerHTML = `<strong>${data.core_credits} / ${data.req_credits}</strong> Core Credits (${data.core_percentage}%)`;
             if (electivesBar) electivesBar.style.width = `${data.elective_percentage}%`;
             
             if (overviewBox) {
                 overviewBox.innerHTML = `
-                    <p style="font-weight:bold; font-size: 1.25rem; margin-bottom: 10px; color: #2d3748;">GPA: ${parseFloat(data.gpa).toFixed(2)}</p>
-                    <p style="color: #4a5568; font-weight: 500;">Minor: <span style="font-weight: 400; font-style: italic;">Undeclared</span></p>
+                    <p style="font-weight:bold; font-size: 1.25rem; margin-bottom: 5px; color: #2d3748;">GPA: ${parseFloat(data.gpa).toFixed(2)}</p>
+                    <p style="color: #4a5568; font-weight: 500; margin-bottom: 5px;">Major: <span style="font-weight: 400;">${data.major}</span></p>
+                    <p style="color: #4a5568; font-weight: 500;">Minor: <span style="font-weight: 400; font-style: italic;">${data.minor}</span></p>
                 `;
             }
             

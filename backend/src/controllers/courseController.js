@@ -394,10 +394,15 @@ exports.getStudentProgress = async (req, res) => {
         const { student_id } = req.params;
         if (!student_id) return res.status(400).json({ error: 'Student ID required.' });
         
-        // Retrieve explicit Student traits (GPA)
+        // Retrieve explicit Student traits (GPA, Major, Minor)
         const { data: studentData, error: studentError } = await supabase
             .from('student')
-            .select('gpa')
+            .select(`
+                gpa,
+                major_id,
+                major ( major_name, req_credits ),
+                minor:minor_id ( minor_name )
+            `)
             .eq('student_id', student_id)
             .single();
 
@@ -438,20 +443,52 @@ exports.getStudentProgress = async (req, res) => {
             });
         }
 
-        // Arbitrary standard graduation requirement: 30 credits
-        const req_credits = 30.0;
-        const progressPercentage = Math.min((totalCredits / req_credits) * 100, 100);
-        const electivePercentage = Math.min((progressPercentage / 2), 100);
+        // 3. Separate Core vs Elective Credits
+        let coreCredits = 0;
+        let electiveCredits = 0;
+
+        if (studentData && studentData.major_id) {
+            const { data: junctionData } = await supabase
+                .from('major_course_junction')
+                .select('course_code, core_course')
+                .eq('major_id', studentData.major_id);
+
+            const coreCourseMap = new Set(junctionData?.filter(j => j.core_course).map(j => j.course_code) || []);
+
+            data?.forEach(enroll => {
+                if (enroll.course_offering && enroll.course_offering.course) {
+                    const c = enroll.course_offering.course;
+                    const creds = parseFloat(c.credits) || 0;
+                    if (coreCourseMap.has(c.course_code)) {
+                        coreCredits += creds;
+                    } else {
+                        electiveCredits += creds;
+                    }
+                }
+            });
+        }
+
+        // Standard requirement: 30 credits (or from Major table)
+        const req_credits = studentData?.major?.req_credits || 30.0;
+        const totalProgress = Math.min(((coreCredits + electiveCredits) / req_credits) * 100, 100);
+        const coreProgress = Math.min((coreCredits / (req_credits * 0.7)) * 100, 100); // Assuming 70% of degree is core
+        const electiveProgress = Math.min((electiveCredits / (req_credits * 0.3)) * 100, 100); 
 
         res.json({
             gpa: studentData?.gpa || 4.0,
+            major: studentData?.major?.major_name || 'Undeclared',
+            minor: studentData?.minor?.minor_name || 'Undeclared',
             total_credits: totalCredits,
+            core_credits: coreCredits,
+            elective_credits: electiveCredits,
             req_credits: req_credits,
-            percentage: progressPercentage.toFixed(1),
-            elective_percentage: electivePercentage.toFixed(1),
+            percentage: totalProgress.toFixed(1),
+            core_percentage: coreProgress.toFixed(1),
+            elective_percentage: electiveProgress.toFixed(1),
             history: history
         });
     } catch (err) {
+        console.error(err);
         res.status(500).json({ error: 'Server error fetching progress.' });
     }
 }
