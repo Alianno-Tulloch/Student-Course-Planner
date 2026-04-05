@@ -30,32 +30,62 @@ Wiki / Activity Blog: <https://github.com/Alianno-Tulloch/Student-Course-Planner
 
 ## How to Run the Project
 
-### Download Node.js AND npm
-1. Download Node.js and download npm, from this link: <https://nodejs.org/en/download>
+You can run this project either **Manually** (local Node.js) or via **Docker** (recommended for production-like environments).
 
-### Start the Backend
-1. Open your terminal or command prompt.
-2. Navigate to the backend folder
-3. Install the required dependencies, using this terminal command:
+---
 
-    `npm install`
+### Method 1: Docker (Single Command Setup)
+*Requires [Docker Desktop](https://www.docker.com/products/docker-desktop) to be installed and running.*
 
-4. Create a .env file in the backend folder, and add the following environment variables:
-SUPABASE_URL=your_supabase_project_url
-SUPABASE_KEY=supabase_publishable_key
-PORT=5000
+1. **Configure Environment:** Create a `.env` file in the root directory (where `docker-compose.yml` is) and add your Supabase credentials:
+   ```batch
+   SUPABASE_URL=your_supabase_url
+   SUPABASE_KEY=your_supabase_anon_key
+   PORT=5000
+   ```
+2. **Launch:** Open your terminal in the root folder and run:
+   ```powershell
+   docker-compose up --build
+   ```
+3. **Access:** Once the containers are running, open your browser to:
+   - **🏠 Web Portal:** `http://localhost:8080` (Automatically redirects to login)
+   - **🔌 API Server:** `http://localhost:5000/api`
 
-5. Start the server, using this terminal command:
+---
 
-    `npm start`
+### Method 2: Manual Setup (Local Node.js)
 
-6. The console should display: Server is running on port 5000
+#### 1. Configure the Backend
+1. Ensure [Node.js](https://nodejs.org/) is installed.
+2. Navigate to the `backend/` folder:
+   ```powershell
+   npm install
+   ```
+3. Create a `.env` file in the `backend/` folder:
+   ```batch
+   SUPABASE_URL=your_supabase_url
+   SUPABASE_KEY=your_supabase_anon_key
+   PORT=5000
+   ```
+4. Start the server:
+   ```powershell
+   node src/server.js
+   ```
 
-### Start the Frontend
-1. Open your file explorer and navigate to frontend/src/.
-2. Open login.html in your preferred web browser (Chrome, Firefox, etc.)
+#### 2. Launch the Frontend
+1. **Option A (Recommended):** Use a local web server (like the **Live Server** extension in VS Code) on the `frontend/src/` folder.
+2. **Option B (Direct):** Open `frontend/src/index.html` in your browser.
+3. **Access:** Navigate to `index.html` and the system will automatically direct you to the login screen.
 
-### Verify the Connection
-1. Navigate to the View Courses page.
-2. Type anything into the search bar and press Enter.
-3. If you see an alert saying Server says: ..., your frontend and backend are communicating correctly!
+---
+
+### Database Setup (Supabase)
+To populate the system with students, teachers, and degree progress data:
+1. Open your Supabase SQL Editor.
+2. Run the code from `backend/database/schema.sql` to build the tables.
+3. Run the code from `backend/database/testdata.sql` to populate Alice, Bob, and the course catalog.
+
+### Test Accounts
+- **Student:** `alice_j` / `password`
+- **Admin:** `admin` / `adminpass`
+- **Teacher:** `turing` / `password`
