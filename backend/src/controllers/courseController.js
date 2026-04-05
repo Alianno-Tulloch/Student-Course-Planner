@@ -121,7 +121,7 @@ exports.addCourse = async (req, res) => {
         }
 
         res.status(201).json({
-            message: `Course ${course_code} added successfully.`,
+            message: `Course added to schedule successfully.`,
             data
         })
     } catch (err) {
