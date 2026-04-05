@@ -16,10 +16,11 @@
                 <a href="progress.html" class="button active">Degree Progress</a>
                 <a href="schedule.html" class="button">View Schedule</a>
                 <a href="course_search.html" class="button">View Courses</a>
+                <button onclick="localStorage.removeItem('loggedInUser'); window.location.href='login.html'" style="background:#e17a47; margin-left: 10px;">Logout</button>
             </nav>
         </header>
 
-        <h1 class="page-title">XXX Degree Progress</h1>
+        <h1 class="page-title" id="page-title-text">Degree Progress</h1>
 
         <div class="legend">
             <div><span>Completed</span></div>
@@ -36,9 +37,9 @@
         </div>
 
         <div class="progress-section">
-            <div class="progress-label">Electives</div>
+            <div class="progress-label">Electives <span id="elective-text" style="font-weight:normal; font-size: 0.8em; margin-left:10px;"></span></div>
             <div class="progress-bar">
-                <div class="progress-fill fill-electives"></div>
+                <div class="progress-fill fill-electives" style="width: 0%; transition: width 0.5s ease-in-out;"></div>
             </div>
         </div>
 
@@ -57,11 +58,8 @@
             </div>
         </div>
 
-        <div>
-            <div class="box-title">Conflicts</div>
-            <div class="conflicts-box"></div>
-        </div>
     </div>
+    <script src="api.js"></script>
 </body>
 
 </html>

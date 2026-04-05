@@ -53,9 +53,7 @@
         <header>
             <a href="home.html" class="logo"></a>
             <nav id="teacher-nav">
-                <a href="home.html" class="button">Home</a>
-                <a href="teacher.html" class="button active">Gradebook</a>
-                <button onclick="localStorage.removeItem('loggedInUser'); window.location.href='login.html'">Logout</button>
+                <!-- Populated dynamically by role -->
             </nav>
         </header>
 
@@ -90,6 +88,22 @@
                 window.location.href = 'home.html';
                 return;
             }
+
+            // Build nav dynamically based on role
+            const nav = document.getElementById('teacher-nav');
+            if (user.role === 'admin') {
+                nav.innerHTML = `
+                    <a href="admin.html" class="button">Admin Panel</a>
+                    <a href="teacher.html" class="button active">Gradebook</a>
+                    <button onclick="localStorage.removeItem('loggedInUser'); window.location.href='login.html'" style="background:#e17a47;">Logout</button>
+                `;
+            } else {
+                nav.innerHTML = `
+                    <a href="teacher.html" class="button active">Gradebook</a>
+                    <button onclick="localStorage.removeItem('loggedInUser'); window.location.href='login.html'" style="background:#e17a47;">Logout</button>
+                `;
+            }
+
             loadGradebook();
         });
 

@@ -7,6 +7,13 @@ CREATE TABLE Major (
     req_credits DECIMAL(4,2)
 );
 
+-- 1.5 Create Minor
+CREATE TABLE Minor (
+    minor_id SERIAL PRIMARY KEY,
+    minor_name VARCHAR(100) NOT NULL,
+    req_credits DECIMAL(4,2)
+);
+
 -- 2. Create Student
 CREATE TABLE Student (
     student_id SERIAL PRIMARY KEY,
@@ -15,6 +22,7 @@ CREATE TABLE Student (
     password VARCHAR(255) NOT NULL,
     role VARCHAR(20) DEFAULT 'student',
     major_id INT REFERENCES Major(major_id),
+    minor_id INT REFERENCES Minor(minor_id),
     gpa DECIMAL(4,2)
 );
 

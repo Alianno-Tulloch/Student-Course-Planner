@@ -17,6 +17,7 @@
                 <a class="button" href="progress.html">Degree Progress</a>
                 <a class="button" href="schedule.html">View Schedule</a>
                 <a class="button" href="course_search.html">View Courses</a>
+                <button onclick="localStorage.removeItem('loggedInUser'); window.location.href='login.html'" style="background:#e17a47; margin-left: 10px;">Logout</button>
             </nav>
         </header>
 
@@ -36,7 +37,7 @@
         </div>
 
         <div class="degree-progress">
-            <h3 class="section-title">Core Courses Degree Progress</h3>
+            <h3 class="section-title">Degree Progress <span id="progress-text" style="font-weight:normal; font-size: 0.8em; margin-left:10px;"></span></h3>
             <div class="progress-bar-container" style="background:#edf2f7; width:100%; border-radius:20px; height:24px; overflow:hidden;">
                 <div class="progress-bar-fill" id="progress-bar-fill" style="width: 0%; height:100%; background-color:#20c997; transition: width 0.5s ease-in-out;"></div>
             </div>

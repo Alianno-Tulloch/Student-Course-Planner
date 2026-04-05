@@ -509,7 +509,11 @@ async function loadProgress() {
     
     // Attempt load universally to populate parallel blocks (Home page)
     const user = checkLoginStatus();
-    if (!user) return;
+    if (!user) {
+        if (overviewBox) overviewBox.innerHTML = '<p style="color: #a0aec0; padding: 10px;">Please log in to view your progress.</p>';
+        if (historyBox) historyBox.innerHTML = '<div style="color: #a0aec0; width: 100%; border: none; background: none;">Please log in to view course history.</div>';
+        return;
+    }
 
     try {
         const response = await fetch(`${API_URL}/courses/progress/${user.id}`);
@@ -517,12 +521,18 @@ async function loadProgress() {
 
         if (response.ok) {
             // Update page title with major name
-            const pageTitle = document.querySelector('.page-title');
+            const pageTitle = document.getElementById('page-title-text');
             if (pageTitle) pageTitle.innerText = `${data.major} Degree Progress`;
 
+            const coreReq = (data.req_credits * 0.7).toFixed(1);
+            const elecReq = (data.req_credits * 0.3).toFixed(1);
+
             if (progressBar) progressBar.style.width = `${data.core_percentage}%`;
-            if (textDisplay) textDisplay.innerHTML = `<strong>${data.core_credits} / ${data.req_credits}</strong> Core Credits (${data.core_percentage}%)`;
+            if (textDisplay) textDisplay.innerHTML = `<strong>${data.core_credits} / ${coreReq}</strong> Credits Completed (${data.core_percentage}%)`;
+            
+            const electiveText = document.getElementById('elective-text');
             if (electivesBar) electivesBar.style.width = `${data.elective_percentage}%`;
+            if (electiveText) electiveText.innerHTML = `<strong>${data.elective_credits} / ${elecReq}</strong> Credits Completed (${data.elective_percentage}%)`;
             
             if (overviewBox) {
                 overviewBox.innerHTML = `
@@ -548,8 +558,13 @@ async function loadProgress() {
                     });
                 }
             }
+        } else {
+            console.error("API Error Response:", data);
+            throw new Error(data.error || "Server responded with an error");
         }
     } catch (error) {
         console.error('Error loading progress:', error);
+        if (overviewBox) overviewBox.innerHTML = `<p style="color: #e53e3e; padding: 10px;">Backend Error: ${error.message}</p>`;
+        if (historyBox) historyBox.innerHTML = '<p style="color: #e53e3e; grid-column: span 2; padding: 10px;">Failed to load data. Please restart the backend.</p>';
     }
 }

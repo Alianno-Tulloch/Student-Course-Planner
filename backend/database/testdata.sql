@@ -34,6 +34,13 @@ INSERT INTO Course (course_code, title, level, credits, description, meeting_day
 ('BU111', 'Business Environment', 'undergrad', 3.0, 'Understanding the corporate business landscape and competitive models.', 'TTh', '4:00 PM - 5:20 PM'),
 ('DS500', 'Machine Learning', 'graduate', 3.0, 'Advanced statistical learning paradigms and neural network algorithms.', 'WF', '6:00 PM - 7:20 PM');
 
+-- 4.5 MAP MAJORS TO COURSES (This specifies which courses are "Core")
+-- Table: major_course_junction
+INSERT INTO major_course_junction (major_id, course_code, core_course) VALUES 
+(1, 'CP104', TRUE), (1, 'CP164', TRUE), (1, 'MA103', TRUE), -- CS Cores
+(2, 'BU111', TRUE), (2, 'MA103', FALSE), -- Business (Calculus is an elective for them)
+(3, 'DS500', TRUE);
+
 -- 5. Map Courses to Explicit Terms and Assigned Teachers
 INSERT INTO Course_Offering (course_code, term_id, teacher_id) VALUES 
 ('CP104', 1, 1), -- CP104 in Fall taught by Turing

@@ -149,7 +149,7 @@ nav button.active {
 
 .progress-bar-fill {
     height: 100%;
-    width: 60%;
+    width: 0%;
     background-color: #20c997;
 }
 
@@ -300,11 +300,11 @@ select {
 }
 
 .fill-core {
-    width: 45%;
+    width: 0%;
 }
 
 .fill-electives {
-    width: 35%;
+    width: 0%;
 }
 
 .dashboard-grid {
@@ -315,9 +315,14 @@ select {
 }
 
 .overview-box {
-    background-color: #e2e8f0;
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
     min-height: 150px;
-    border-radius: 4px;
+    border-radius: 8px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .box-title {
@@ -337,7 +342,10 @@ select {
 }
 
 .course-history div {
-    padding: 5px;
+    padding: 12px;
+    background: #f8fafc;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
 }
 
 .course-history .planned {
