@@ -57,17 +57,17 @@ You can run this project either **Manually** (local Node.js) or via **Docker** (
 
 #### 1. Configure the Backend
 1. Ensure [Node.js](https://nodejs.org/) is installed.
-2. Navigate to the `backend/` folder:
-   ```powershell
-   npm install
-   ```
-3. Create a `.env` file in the `backend/` folder:
+2. Create a `.env` file in the root directory, and add your Supabase credentials:
    ```batch
    SUPABASE_URL=your_supabase_url
    SUPABASE_KEY=your_supabase_anon_key
    PORT=5000
    ```
-4. Start the server:
+3. Open your terminal in the `backend/` folder, and run:
+   ```powershell
+   npm install
+   ```
+4. In the `backend/` folder terminal, start the server:
    ```powershell
    node src/server.js
    ```
