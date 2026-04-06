@@ -284,6 +284,18 @@ async function loadScheduleTable() {
     const user = checkLoginStatus();
     if (!user) return;
 
+    // Update header with Student Name and Major
+    const userInfo = document.getElementById('schedule-user-info');
+    if (userInfo) {
+        try {
+            const progResp = await fetch(`${API_URL}/courses/progress/${user.id}`);
+            const progData = await progResp.json();
+            userInfo.innerText = `${user.name}, ${progData.major || 'Student'}`;
+        } catch (e) {
+            userInfo.innerText = `${user.name}, Student`;
+        }
+    }
+
     try {
         const response = await fetch(`${API_URL}/courses/schedule/${user.id}`);
         globalScheduleCourses = await response.json();
